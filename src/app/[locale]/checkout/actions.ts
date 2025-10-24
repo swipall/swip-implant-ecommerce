@@ -7,6 +7,7 @@ import {
   SetOrderShippingMethodMutation,
   AddPaymentToOrderMutation,
   CreateCustomerAddressMutation,
+  TransitionOrderToStateMutation,
 } from '@/lib/vendure/mutations';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -77,13 +78,44 @@ export async function createCustomerAddress(address: AddressInput) {
   return result.data.createCustomerAddress;
 }
 
-export async function placeOrder() {
+export async function transitionToArrangingPayment() {
+  const result = await mutate(
+    TransitionOrderToStateMutation,
+    { state: 'ArrangingPayment' },
+    { useAuthToken: true }
+  );
+
+  if (result.data.transitionOrderToState?.__typename === 'OrderStateTransitionError') {
+    const errorResult = result.data.transitionOrderToState;
+    throw new Error(
+      `Failed to transition order state: ${errorResult.errorCode} - ${errorResult.message}`
+    );
+  }
+
+  revalidatePath('/checkout');
+}
+
+export async function placeOrder(paymentMethodCode: string) {
+  // First, transition the order to ArrangingPayment state
+  await transitionToArrangingPayment();
+
+  // Prepare metadata based on payment method
+  const metadata: Record<string, unknown> = {};
+
+  // For standard payment, include the required fields
+  if (paymentMethodCode === 'standard-payment') {
+    metadata.shouldDecline = false;
+    metadata.shouldError = false;
+    metadata.shouldErrorOnSettle = false;
+  }
+
+  // Add payment to the order
   const result = await mutate(
     AddPaymentToOrderMutation,
     {
       input: {
-        method: 'standard-payment',
-        metadata: {},
+        method: paymentMethodCode,
+        metadata,
       },
     },
     { useAuthToken: true }

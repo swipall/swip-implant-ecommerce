@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -13,13 +12,10 @@ interface PaymentStepProps {
 }
 
 export default function PaymentStep({ onComplete }: PaymentStepProps) {
-  const { paymentMethods } = useCheckout();
-  const [selectedMethodCode, setSelectedMethodCode] = useState<string | null>(() => {
-    return paymentMethods.length === 1 ? paymentMethods[0].code : null;
-  });
+  const { paymentMethods, selectedPaymentMethodCode, setSelectedPaymentMethodCode } = useCheckout();
 
   const handleContinue = () => {
-    if (!selectedMethodCode) return;
+    if (!selectedPaymentMethodCode) return;
     onComplete();
   };
 
@@ -35,7 +31,7 @@ export default function PaymentStep({ onComplete }: PaymentStepProps) {
     <div className="space-y-6">
       <h3 className="font-semibold">Select payment method</h3>
 
-      <RadioGroup value={selectedMethodCode || ''} onValueChange={setSelectedMethodCode}>
+      <RadioGroup value={selectedPaymentMethodCode || ''} onValueChange={setSelectedPaymentMethodCode}>
         {paymentMethods.map((method) => (
           <Label key={method.code} htmlFor={method.code} className="cursor-pointer">
             <Card className="p-4">
@@ -58,7 +54,7 @@ export default function PaymentStep({ onComplete }: PaymentStepProps) {
 
       <Button
         onClick={handleContinue}
-        disabled={!selectedMethodCode}
+        disabled={!selectedPaymentMethodCode}
         className="w-full"
       >
         Continue to review

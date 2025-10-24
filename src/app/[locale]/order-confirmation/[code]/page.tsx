@@ -46,8 +46,9 @@ const GetOrderByCodeQuery = graphql(`
   }
 `);
 
-export default async function OrderConfirmationPage({ params }: { params: { code: string } }) {
-  const { data } = await query(GetOrderByCodeQuery, { code: params.code }, { useAuthToken: true });
+export default async function OrderConfirmationPage({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  const { data } = await query(GetOrderByCodeQuery, { code }, { useAuthToken: true });
   const order = data.orderByCode;
 
   if (!order) {
@@ -84,7 +85,7 @@ export default async function OrderConfirmationPage({ params }: { params: { code
           </CardHeader>
           <CardContent className="space-y-4">
             {order.lines.map((line) => (
-              <div key={line.id} className="flex gap-4">
+              <div key={line.id} className="flex gap-4 items-center">
                 {line.productVariant.product.featuredAsset && (
                   <div className="flex-shrink-0">
                     <Image
@@ -92,7 +93,7 @@ export default async function OrderConfirmationPage({ params }: { params: { code
                       alt={line.productVariant.name}
                       width={80}
                       height={80}
-                      className="rounded object-cover"
+                      className="rounded object-cover h-20 w-20 object-center"
                     />
                   </div>
                 )}
@@ -103,9 +104,12 @@ export default async function OrderConfirmationPage({ params }: { params: { code
                       {line.productVariant.name}
                     </p>
                   )}
-                  <p className="text-sm text-muted-foreground mt-1">Qty: {line.quantity}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-center w-16">
+                  <p className="text-sm text-muted-foreground">Qty</p>
+                  <p className="font-medium">{line.quantity}</p>
+                </div>
+                <div className="text-right w-24">
                   <p className="font-semibold">
                     {(line.linePriceWithTax / 100).toLocaleString('en-US', {
                       style: 'currency',

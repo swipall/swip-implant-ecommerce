@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useState } from 'react';
 import { CheckoutOrder } from './types';
 
 interface CustomerAddress {
@@ -47,6 +47,8 @@ interface CheckoutContextType {
   countries: Country[];
   shippingMethods: ShippingMethod[];
   paymentMethods: PaymentMethod[];
+  selectedPaymentMethodCode: string | null;
+  setSelectedPaymentMethodCode: (code: string | null) => void;
 }
 
 const CheckoutContext = createContext<CheckoutContextType | null>(null);
@@ -68,6 +70,10 @@ export function CheckoutProvider({
   shippingMethods,
   paymentMethods,
 }: CheckoutProviderProps) {
+  const [selectedPaymentMethodCode, setSelectedPaymentMethodCode] = useState<string | null>(
+    paymentMethods.length === 1 ? paymentMethods[0].code : null
+  );
+
   return (
     <CheckoutContext.Provider
       value={{
@@ -76,6 +82,8 @@ export function CheckoutProvider({
         countries,
         shippingMethods,
         paymentMethods,
+        selectedPaymentMethodCode,
+        setSelectedPaymentMethodCode,
       }}
     >
       {children}

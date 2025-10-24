@@ -11,13 +11,19 @@ interface ReviewStepProps {
 }
 
 export default function ReviewStep({ onEditStep }: ReviewStepProps) {
-  const { order } = useCheckout();
+  const { order, paymentMethods, selectedPaymentMethodCode } = useCheckout();
   const [loading, setLoading] = useState(false);
 
+  const selectedPaymentMethod = paymentMethods.find(
+    (method) => method.code === selectedPaymentMethodCode
+  );
+
   const handlePlaceOrder = async () => {
+    if (!selectedPaymentMethodCode) return;
+
     setLoading(true);
     try {
-      await placeOrderAction();
+      await placeOrderAction(selectedPaymentMethodCode);
     } catch (error) {
       console.error('Error placing order:', error);
       setLoading(false);
@@ -102,23 +108,34 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
             <CreditCard className="h-5 w-5 text-muted-foreground" />
             <h4 className="font-medium">Payment Method</h4>
           </div>
-          <div className="text-sm space-y-3">
-            <p className="text-muted-foreground">Payment will be processed at order completion</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEditStep('payment')}
-            >
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
-          </div>
+          {selectedPaymentMethod ? (
+            <div className="text-sm space-y-3">
+              <div>
+                <p className="font-medium">{selectedPaymentMethod.name}</p>
+                {selectedPaymentMethod.description && (
+                  <p className="text-muted-foreground mt-1">
+                    {selectedPaymentMethod.description}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEditStep('payment')}
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No payment method selected</p>
+          )}
         </div>
       </div>
 
       <Button
         onClick={handlePlaceOrder}
-        disabled={loading || !order.shippingAddress || !order.shippingLines?.length}
+        disabled={loading || !order.shippingAddress || !order.shippingLines?.length || !selectedPaymentMethodCode}
         size="lg"
         className="w-full"
       >
@@ -126,7 +143,7 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
         Place Order
       </Button>
 
-      {(!order.shippingAddress || !order.shippingLines?.length) && (
+      {(!order.shippingAddress || !order.shippingLines?.length || !selectedPaymentMethodCode) && (
         <p className="text-sm text-destructive text-center">
           Please complete all previous steps before placing your order
         </p>

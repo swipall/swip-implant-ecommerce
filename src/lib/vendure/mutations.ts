@@ -215,6 +215,26 @@ export const SetOrderShippingMethodMutation = graphql(`
     }
 `);
 
+export const TransitionOrderToStateMutation = graphql(`
+    mutation TransitionOrderToState($state: String!) {
+        transitionOrderToState(state: $state) {
+            __typename
+            ... on Order {
+                id
+                code
+                state
+            }
+            ... on OrderStateTransitionError {
+                errorCode
+                message
+                transitionError
+                fromState
+                toState
+            }
+        }
+    }
+`);
+
 export const AddPaymentToOrderMutation = graphql(`
     mutation AddPaymentToOrder($input: PaymentInput!) {
         addPaymentToOrder(input: $input) {
