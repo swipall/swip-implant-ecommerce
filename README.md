@@ -3,13 +3,16 @@
     <img alt="Vendure logo" height="60" width="auto" src="https://a.storyblok.com/f/328257/699x480/8dbb4c7a3c/logo-icon.png/m/0x80">
   </a>
 </p>
-
-
-# Vendure Next.js Storefront Starter
-
-### Production-ready Next.js 16 storefront for Vendure headless commerce.
-
-#### [Vendure Documentation](https://docs.vendure.io) | [Vendure Website](https://vendure.io)
+<h1 align="center">
+  Vendure Next.js Storefront Starter
+</h1>
+<h3 align="center">
+    Production-ready Next.js 16 storefront for Vendure headless commerce.
+</h3>
+<h4 align="center">
+  <a href="https://docs.vendure.io">Documentation</a> |
+  <a href="https://vendure.io">Website</a>
+</h4>
 
 ## Features
 
