@@ -6,9 +6,14 @@ const nextConfig: NextConfig = {
         root: process.cwd()
     },
     images: {
-        remotePatterns: [{
-            hostname: 'readonlydemo.vendure.io',
-        }]
+        remotePatterns: [
+            {
+                hostname: 'readonlydemo.vendure.io',
+            },
+            {
+                hostname: 'demo.vendure.io'
+            }
+        ],
     },
     experimental: {
         authInterrupts: true,
