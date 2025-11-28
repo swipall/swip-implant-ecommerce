@@ -11,6 +11,7 @@ import {redirect} from 'next/navigation';
 import CheckoutFlow from './checkout-flow';
 import {CheckoutProvider} from './checkout-provider';
 import {noIndexRobots} from '@/lib/metadata';
+import {getActiveCustomer} from '@/lib/vendure/actions';
 
 export const metadata: Metadata = {
     title: 'Checkout',
@@ -19,6 +20,12 @@ export const metadata: Metadata = {
 };
 
 export default async function CheckoutPage(_props: PageProps<'/checkout'>) {
+    // Check if user is authenticated
+    const customer = await getActiveCustomer();
+    if (!customer) {
+        redirect('/sign-in?redirectTo=/checkout');
+    }
+
     const [orderRes, addressesRes, countriesRes, shippingMethodsRes, paymentMethodsRes] =
         await Promise.all([
             query(GetActiveOrderForCheckoutQuery, {}, {useAuthToken: true}),

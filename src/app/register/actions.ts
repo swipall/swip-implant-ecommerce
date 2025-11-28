@@ -10,6 +10,7 @@ export async function registerAction(prevState: { error?: string } | undefined, 
     const lastName = formData.get('lastName') as string;
     const phoneNumber = formData.get('phoneNumber') as string;
     const password = formData.get('password') as string;
+    const redirectTo = formData.get('redirectTo') as string | null;
 
     if (!emailAddress || !password) {
         return {error: 'Email address and password are required'};
@@ -32,7 +33,11 @@ export async function registerAction(prevState: { error?: string } | undefined, 
         return {error: registerResult.message};
     }
 
-    // Redirect to verification pending page
-    redirect('/verify-pending');
+    // Redirect to verification pending page, preserving redirectTo if present
+    const verifyUrl = redirectTo
+        ? `/verify-pending?redirectTo=${encodeURIComponent(redirectTo)}`
+        : '/verify-pending';
+
+    redirect(verifyUrl);
 
 }

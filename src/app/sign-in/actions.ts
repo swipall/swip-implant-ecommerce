@@ -9,6 +9,7 @@ import {revalidatePath} from "next/cache";
 export async function loginAction(prevState: { error?: string } | undefined, formData: FormData) {
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
+    const redirectTo = formData.get('redirectTo') as string | null;
 
     const result = await mutate(LoginMutation, {
         username,
@@ -31,7 +32,12 @@ export async function loginAction(prevState: { error?: string } | undefined, for
 
     revalidatePath('/[locale]', 'layout');
 
-    redirect('/');
+    // Validate redirectTo is a safe internal path
+    const safeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//')
+        ? redirectTo
+        : '/';
+
+    redirect(safeRedirect);
 
 }
 

@@ -1,4 +1,5 @@
 import type {Metadata} from 'next';
+import {Suspense} from 'react';
 import { RegistrationForm } from "./registration-form";
 
 export const metadata: Metadata = {
@@ -6,7 +7,14 @@ export const metadata: Metadata = {
     description: 'Create a new account to start shopping with us.',
 };
 
-export default function RegisterPage(_props: PageProps<'/register'>) {
+async function RegisterContent({searchParams}: {searchParams: Promise<Record<string, string | string[] | undefined>>}) {
+    const resolvedParams = await searchParams;
+    const redirectTo = resolvedParams?.redirectTo as string | undefined;
+
+    return <RegistrationForm redirectTo={redirectTo} />;
+}
+
+export default async function RegisterPage({searchParams}: PageProps<'/register'>) {
     return (
         <div className="flex min-h-screen items-center justify-center px-4">
             <div className="w-full max-w-md space-y-6">
@@ -16,7 +24,9 @@ export default function RegisterPage(_props: PageProps<'/register'>) {
                         Sign up to start shopping with us
                     </p>
                 </div>
-                <RegistrationForm />
+                <Suspense fallback={<div>Loading...</div>}>
+                    <RegisterContent searchParams={searchParams} />
+                </Suspense>
             </div>
         </div>
     );

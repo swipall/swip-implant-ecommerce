@@ -25,7 +25,11 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export function LoginForm() {
+interface LoginFormProps {
+    redirectTo?: string;
+}
+
+export function LoginForm({ redirectTo }: LoginFormProps) {
     const [isPending, startTransition] = useTransition();
     const [serverError, setServerError] = useState<string | null>(null);
 
@@ -44,6 +48,9 @@ export function LoginForm() {
             const formData = new FormData();
             formData.append('username', data.username);
             formData.append('password', data.password);
+            if (redirectTo) {
+                formData.append('redirectTo', redirectTo);
+            }
 
             const result = await loginAction(undefined, formData);
             if (result?.error) {
@@ -51,6 +58,10 @@ export function LoginForm() {
             }
         });
     };
+
+    const registerHref = redirectTo
+        ? `/register?redirectTo=${encodeURIComponent(redirectTo)}`
+        : '/register';
 
     return (
         <Card>
@@ -114,7 +125,7 @@ export function LoginForm() {
                             </Link>
                             <div className="text-muted-foreground">
                                 Don&apos;t have an account?{' '}
-                                <Link href="/register" className="hover:text-primary">
+                                <Link href={registerHref} className="hover:text-primary">
                                     Register
                                 </Link>
                             </div>

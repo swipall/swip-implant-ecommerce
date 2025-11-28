@@ -32,7 +32,11 @@ const registrationSchema = z.object({
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
 
-export function RegistrationForm() {
+interface RegistrationFormProps {
+    redirectTo?: string;
+}
+
+export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
     const [isPending, startTransition] = useTransition();
     const [serverError, setServerError] = useState<string | null>(null);
 
@@ -58,6 +62,9 @@ export function RegistrationForm() {
             if (data.lastName) formData.append('lastName', data.lastName);
             if (data.phoneNumber) formData.append('phoneNumber', data.phoneNumber);
             formData.append('password', data.password);
+            if (redirectTo) {
+                formData.append('redirectTo', redirectTo);
+            }
 
             const result = await registerAction(undefined, formData);
             if (result?.error) {
@@ -65,6 +72,10 @@ export function RegistrationForm() {
             }
         });
     };
+
+    const signInHref = redirectTo
+        ? `/sign-in?redirectTo=${encodeURIComponent(redirectTo)}`
+        : '/sign-in';
 
     return (
         <Card>
@@ -199,7 +210,7 @@ export function RegistrationForm() {
                         </Button>
                         <div className="text-sm text-center text-muted-foreground">
                             Already have an account?{' '}
-                            <Link href="/sign-in" className="hover:text-primary">
+                            <Link href={signInHref} className="hover:text-primary">
                                 Sign in
                             </Link>
                         </div>

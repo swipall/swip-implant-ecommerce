@@ -1,4 +1,5 @@
 import type {Metadata} from 'next';
+import {Suspense} from 'react';
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -6,7 +7,14 @@ export const metadata: Metadata = {
     description: 'Sign in to your account to access your orders, wishlist, and more.',
 };
 
-export default function SignInPage(_props: PageProps<'/sign-in'>) {
+async function SignInContent({searchParams}: {searchParams: Promise<Record<string, string | string[] | undefined>>}) {
+    const resolvedParams = await searchParams;
+    const redirectTo = resolvedParams?.redirectTo as string | undefined;
+
+    return <LoginForm redirectTo={redirectTo} />;
+}
+
+export default async function SignInPage({searchParams}: PageProps<'/sign-in'>) {
     return (
         <div className="flex min-h-screen items-center justify-center px-4">
             <div className="w-full max-w-md space-y-6">
@@ -16,7 +24,9 @@ export default function SignInPage(_props: PageProps<'/sign-in'>) {
                         Enter your credentials to access your account
                     </p>
                 </div>
-                <LoginForm />
+                <Suspense fallback={<div>Loading...</div>}>
+                    <SignInContent searchParams={searchParams} />
+                </Suspense>
             </div>
         </div>
     );
