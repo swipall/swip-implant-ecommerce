@@ -30,7 +30,7 @@ export async function loginAction(prevState: { error?: string } | undefined, for
         await setAuthToken(result.token);
     }
 
-    revalidatePath('/[locale]', 'layout');
+    revalidatePath('/', 'layout');
 
     // Validate redirectTo is a safe internal path
     const safeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//')
