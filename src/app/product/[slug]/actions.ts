@@ -3,15 +3,13 @@
 import { mutate } from '@/lib/vendure/api';
 import { AddToCartMutation } from '@/lib/vendure/mutations';
 import { updateTag } from 'next/cache';
-import { setAuthToken, getAuthToken } from '@/lib/auth';
+import { setAuthToken } from '@/lib/auth';
 
 export async function addToCart(variantId: string, quantity: number = 1) {
   try {
     const result = await mutate(AddToCartMutation, { variantId, quantity }, { useAuthToken: true });
 
-    // Only store the auth token if we don't have one yet (new session)
-    const existingToken = await getAuthToken();
-    if (result.token && !existingToken) {
+    if (result.token) {
       await setAuthToken(result.token);
     }
 
