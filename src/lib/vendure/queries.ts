@@ -158,6 +158,7 @@ export const GetActiveOrderForCheckoutQuery = graphql(`
                 firstName
                 lastName
                 emailAddress
+                phoneNumber
             }
             shippingAddress {
                 fullName

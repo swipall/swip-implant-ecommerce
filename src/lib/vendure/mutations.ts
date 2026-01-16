@@ -418,3 +418,38 @@ export const UpdateCustomerEmailAddressMutation = graphql(`
         }
     }
 `);
+
+export const SetCustomerForOrderMutation = graphql(`
+    mutation SetCustomerForOrder($input: CreateCustomerInput!) {
+        setCustomerForOrder(input: $input) {
+            __typename
+            ... on Order {
+                id
+                code
+                customer {
+                    id
+                    firstName
+                    lastName
+                    emailAddress
+                    phoneNumber
+                }
+            }
+            ... on AlreadyLoggedInError {
+                errorCode
+                message
+            }
+            ... on EmailAddressConflictError {
+                errorCode
+                message
+            }
+            ... on GuestCheckoutError {
+                errorCode
+                message
+            }
+            ... on NoActiveOrderError {
+                errorCode
+                message
+            }
+        }
+    }
+`);

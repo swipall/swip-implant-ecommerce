@@ -2,17 +2,17 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, MapPin, Truck, CreditCard, Edit } from 'lucide-react';
+import { Loader2, MapPin, Truck, CreditCard, Edit, Mail } from 'lucide-react';
 import { useCheckout } from '../checkout-provider';
 import { placeOrder as placeOrderAction } from '../actions';
 import { Price } from '@/components/commerce/price';
 
 interface ReviewStepProps {
-  onEditStep: (step: 'shipping' | 'delivery' | 'payment') => void;
+  onEditStep: (step: 'contact' | 'shipping' | 'delivery' | 'payment') => void;
 }
 
 export default function ReviewStep({ onEditStep }: ReviewStepProps) {
-  const { order, paymentMethods, selectedPaymentMethodCode } = useCheckout();
+  const { order, paymentMethods, selectedPaymentMethodCode, isGuest } = useCheckout();
   const [loading, setLoading] = useState(false);
 
   const selectedPaymentMethod = paymentMethods.find(
@@ -26,9 +26,7 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
     try {
       await placeOrderAction(selectedPaymentMethodCode);
     } catch (error) {
-      // Check if this is a Next.js redirect (which is expected)
       if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
-        // This is a redirect, not an error - let it propagate
         throw error;
       }
       console.error('Error placing order:', error);
@@ -40,7 +38,32 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
     <div className="space-y-6">
       <h3 className="font-semibold text-lg">Review your order</h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 gap-6 ${isGuest ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'}`}>
+        {isGuest && order.customer && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-muted-foreground" />
+              <h4 className="font-medium">Contact</h4>
+            </div>
+            <div className="text-sm space-y-3">
+              <div>
+                <p className="font-medium">
+                  {order.customer.firstName} {order.customer.lastName}
+                </p>
+                <p className="text-muted-foreground">{order.customer.emailAddress}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEditStep('contact')}
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Shipping Address */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">

@@ -8,6 +8,7 @@ import {
     AddPaymentToOrderMutation,
     CreateCustomerAddressMutation,
     TransitionOrderToStateMutation,
+    SetCustomerForOrderMutation,
 } from '@/lib/vendure/mutations';
 import {revalidatePath, updateTag} from 'next/cache';
 import {redirect} from "next/navigation";
@@ -135,4 +136,46 @@ export async function placeOrder(paymentMethodCode: string) {
     updateTag('active-order');
 
     redirect(`/order-confirmation/${orderCode}`);
+}
+
+interface GuestCustomerInput {
+    emailAddress: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+}
+
+export type SetCustomerForOrderResult =
+    | { success: true }
+    | { success: false; errorCode: 'EMAIL_CONFLICT'; message: string }
+    | { success: false; errorCode: 'GUEST_CHECKOUT_DISABLED'; message: string }
+    | { success: false; errorCode: 'NO_ACTIVE_ORDER'; message: string }
+    | { success: false; errorCode: 'UNKNOWN'; message: string };
+
+export async function setCustomerForOrder(
+    input: GuestCustomerInput
+): Promise<SetCustomerForOrderResult> {
+    const result = await mutate(
+        SetCustomerForOrderMutation,
+        { input },
+        { useAuthToken: true }
+    );
+
+    const response = result.data.setCustomerForOrder;
+
+    switch (response.__typename) {
+        case 'Order':
+            revalidatePath('/checkout');
+            return { success: true };
+        case 'AlreadyLoggedInError':
+            return { success: true };
+        case 'EmailAddressConflictError':
+            return { success: false, errorCode: 'EMAIL_CONFLICT', message: response.message };
+        case 'GuestCheckoutError':
+            return { success: false, errorCode: 'GUEST_CHECKOUT_DISABLED', message: response.message };
+        case 'NoActiveOrderError':
+            return { success: false, errorCode: 'NO_ACTIVE_ORDER', message: response.message };
+        default:
+            return { success: false, errorCode: 'UNKNOWN', message: 'Unknown error' };
+    }
 }

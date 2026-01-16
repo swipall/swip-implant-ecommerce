@@ -20,16 +20,15 @@ export const metadata: Metadata = {
 };
 
 export default async function CheckoutPage(_props: PageProps<'/checkout'>) {
-    // Check if user is authenticated
     const customer = await getActiveCustomer();
-    if (!customer) {
-        redirect('/sign-in?redirectTo=/checkout');
-    }
+    const isGuest = !customer;
 
     const [orderRes, addressesRes, countries, shippingMethodsRes, paymentMethodsRes] =
         await Promise.all([
             query(GetActiveOrderForCheckoutQuery, {}, {useAuthToken: true}),
-            query(GetCustomerAddressesQuery, {}, {useAuthToken: true}),
+            isGuest
+                ? Promise.resolve({ data: { activeCustomer: null } })
+                : query(GetCustomerAddressesQuery, {}, {useAuthToken: true}),
             getAvailableCountriesCached(),
             query(GetEligibleShippingMethodsQuery, {}, {useAuthToken: true}),
             query(GetEligiblePaymentMethodsQuery, {}, {useAuthToken: true}),
@@ -41,8 +40,6 @@ export default async function CheckoutPage(_props: PageProps<'/checkout'>) {
         return redirect('/cart');
     }
 
-    // If the order is no longer in AddingItems state, it's been completed
-    // Redirect to the order confirmation page
     if (activeOrder.state !== 'AddingItems' && activeOrder.state !== 'ArrangingPayment') {
         return redirect(`/order-confirmation/${activeOrder.code}`);
     }
@@ -61,6 +58,7 @@ export default async function CheckoutPage(_props: PageProps<'/checkout'>) {
                 countries={countries}
                 shippingMethods={shippingMethods}
                 paymentMethods={paymentMethods}
+                isGuest={isGuest}
             >
                 <CheckoutFlow/>
             </CheckoutProvider>

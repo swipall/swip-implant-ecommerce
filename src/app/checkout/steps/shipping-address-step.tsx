@@ -34,9 +34,8 @@ interface AddressFormData {
 
 export default function ShippingAddressStep({ onComplete }: ShippingAddressStepProps) {
   const router = useRouter();
-  const { addresses, countries, order } = useCheckout();
+  const { addresses, countries, order, isGuest } = useCheckout();
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(() => {
-    // If order already has a shipping address, try to match it with saved addresses
     if (order.shippingAddress) {
       const matchingAddress = addresses.find(
         (a) =>
@@ -45,19 +44,41 @@ export default function ShippingAddressStep({ onComplete }: ShippingAddressStepP
       );
       if (matchingAddress) return matchingAddress.id;
     }
-    // Otherwise use default shipping address
     const defaultAddress = addresses.find((a) => a.defaultShippingAddress);
     return defaultAddress?.id || null;
   });
-  const [dialogOpen, setDialogOpen] = useState(addresses.length === 0);
+  const [dialogOpen, setDialogOpen] = useState(addresses.length === 0 && !isGuest);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [useSameForBilling, setUseSameForBilling] = useState(true);
 
-  const { register, handleSubmit, formState: { errors }, reset, control } = useForm<AddressFormData>({
-    defaultValues: {
-      countryCode: countries[0]?.code || 'US',
+  const getDefaultFormValues = (): Partial<AddressFormData> => {
+    const customerFullName = order.customer
+      ? `${order.customer.firstName} ${order.customer.lastName}`.trim()
+      : '';
+
+    if (isGuest && order.shippingAddress?.streetLine1) {
+      return {
+        fullName: order.shippingAddress.fullName || customerFullName,
+        streetLine1: order.shippingAddress.streetLine1 || '',
+        streetLine2: order.shippingAddress.streetLine2 || '',
+        city: order.shippingAddress.city || '',
+        province: order.shippingAddress.province || '',
+        postalCode: order.shippingAddress.postalCode || '',
+        countryCode: countries.find(c => c.name === order.shippingAddress?.country)?.code || countries[0]?.code || 'US',
+        phoneNumber: order.shippingAddress.phoneNumber || order.customer?.phoneNumber || '',
+        company: order.shippingAddress.company || '',
+      };
     }
+    return {
+      fullName: customerFullName,
+      countryCode: countries[0]?.code || 'US',
+      phoneNumber: order.customer?.phoneNumber || '',
+    };
+  };
+
+  const { register, handleSubmit, formState: { errors }, reset, control } = useForm<AddressFormData>({
+    defaultValues: getDefaultFormValues()
   });
 
   const handleSelectExistingAddress = async () => {
@@ -92,17 +113,10 @@ export default function ShippingAddressStep({ onComplete }: ShippingAddressStepP
   const onSaveNewAddress = async (data: AddressFormData) => {
     setSaving(true);
     try {
-      // First create the address in Vendure
       const newAddress = await createCustomerAddress(data);
-
-      // Close dialog and reset form
       setDialogOpen(false);
       reset();
-
-      // Refresh to get updated addresses list
       router.refresh();
-
-      // Select the newly created address
       setSelectedAddressId(newAddress.id);
     } catch (error) {
       console.error('Error creating address:', error);
@@ -111,6 +125,133 @@ export default function ShippingAddressStep({ onComplete }: ShippingAddressStepP
       setSaving(false);
     }
   };
+
+  const onSubmitGuestAddress = async (data: AddressFormData) => {
+    setLoading(true);
+    try {
+      await setShippingAddress(data, useSameForBilling);
+      router.refresh();
+      onComplete();
+    } catch (error) {
+      console.error('Error setting address:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (isGuest) {
+    return (
+      <div className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmitGuestAddress)}>
+          <FieldGroup>
+            <div className="grid grid-cols-2 gap-4">
+              <Field className="col-span-2">
+                <FieldLabel htmlFor="fullName">Full Name *</FieldLabel>
+                <Input
+                  id="fullName"
+                  {...register('fullName', { required: 'Full name is required' })}
+                />
+                <FieldError>{errors.fullName?.message}</FieldError>
+              </Field>
+
+              <Field className="col-span-2">
+                <FieldLabel htmlFor="company">Company</FieldLabel>
+                <Input id="company" {...register('company')} />
+              </Field>
+
+              <Field className="col-span-2">
+                <FieldLabel htmlFor="streetLine1">Street Address *</FieldLabel>
+                <Input
+                  id="streetLine1"
+                  {...register('streetLine1', { required: 'Street address is required' })}
+                />
+                <FieldError>{errors.streetLine1?.message}</FieldError>
+              </Field>
+
+              <Field className="col-span-2">
+                <FieldLabel htmlFor="streetLine2">Apartment, suite, etc.</FieldLabel>
+                <Input id="streetLine2" {...register('streetLine2')} />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="city">City *</FieldLabel>
+                <Input
+                  id="city"
+                  {...register('city', { required: 'City is required' })}
+                />
+                <FieldError>{errors.city?.message}</FieldError>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="province">State/Province</FieldLabel>
+                <Input
+                  id="province"
+                  {...register('province')}
+                />
+                <FieldError>{errors.province?.message}</FieldError>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="postalCode">Postal Code *</FieldLabel>
+                <Input
+                  id="postalCode"
+                  {...register('postalCode', { required: 'Postal code is required' })}
+                />
+                <FieldError>{errors.postalCode?.message}</FieldError>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="countryCode">Country *</FieldLabel>
+                <Controller
+                  name="countryCode"
+                  control={control}
+                  rules={{ required: 'Country is required' }}
+                  render={({ field }) => (
+                    <CountrySelect
+                      countries={countries}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={loading}
+                    />
+                  )}
+                />
+                <FieldError>{errors.countryCode?.message}</FieldError>
+              </Field>
+
+              <Field className="col-span-2">
+                <FieldLabel htmlFor="phoneNumber">Phone Number *</FieldLabel>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  {...register('phoneNumber', { required: 'Phone number is required' })}
+                />
+                <FieldError>{errors.phoneNumber?.message}</FieldError>
+              </Field>
+            </div>
+
+            <div className="flex items-center space-x-2 mt-4">
+              <Checkbox
+                id="same-billing-guest"
+                checked={useSameForBilling}
+                onCheckedChange={(checked) => setUseSameForBilling(checked === true)}
+              />
+              <label
+                htmlFor="same-billing-guest"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Use same address for billing
+              </label>
+            </div>
+
+            <Button type="submit" disabled={loading} className="w-full mt-4">
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Continue
+            </Button>
+          </FieldGroup>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

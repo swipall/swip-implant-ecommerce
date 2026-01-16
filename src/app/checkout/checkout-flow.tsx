@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import ContactStep from './steps/contact-step';
 import ShippingAddressStep from './steps/shipping-address-step';
 import DeliveryStep from './steps/delivery-step';
 import PaymentStep from './steps/payment-step';
@@ -9,25 +10,43 @@ import ReviewStep from './steps/review-step';
 import OrderSummary from './order-summary';
 import { useCheckout } from './checkout-provider';
 
-type CheckoutStep = 'shipping' | 'delivery' | 'payment' | 'review';
+type CheckoutStep = 'contact' | 'shipping' | 'delivery' | 'payment' | 'review';
 
 export default function CheckoutFlow() {
-  const { order } = useCheckout();
+  const { order, isGuest } = useCheckout();
 
-  // Determine initial step and completed steps based on order state
+  const getStepOrder = (): CheckoutStep[] => {
+    if (isGuest) {
+      return ['contact', 'shipping', 'delivery', 'payment', 'review'];
+    }
+    return ['shipping', 'delivery', 'payment', 'review'];
+  };
+
+  const stepOrder = getStepOrder();
+
   const getInitialState = () => {
     const completed = new Set<CheckoutStep>();
-    let current: CheckoutStep = 'shipping';
+    let current: CheckoutStep = stepOrder[0];
 
-    // Check if shipping address has required fields, not just if the object exists
+    if (isGuest) {
+      if (order.customer?.emailAddress) {
+        completed.add('contact');
+        current = 'shipping';
+      }
+    }
+
     if (order.shippingAddress?.streetLine1 && order.shippingAddress?.country) {
-      completed.add('shipping');
-      current = 'delivery';
+      if (!isGuest || completed.has('contact')) {
+        completed.add('shipping');
+        current = 'delivery';
+      }
     }
 
     if (order.shippingLines && order.shippingLines.length > 0) {
-      completed.add('delivery');
-      current = 'payment';
+      if (completed.has('shipping')) {
+        completed.add('delivery');
+        current = 'payment';
+      }
     }
 
     return { completed, current };
@@ -40,7 +59,6 @@ export default function CheckoutFlow() {
   const handleStepComplete = (step: CheckoutStep) => {
     setCompletedSteps(prev => new Set([...prev, step]));
 
-    const stepOrder: CheckoutStep[] = ['shipping', 'delivery', 'payment', 'review'];
     const currentIndex = stepOrder.indexOf(step);
     if (currentIndex < stepOrder.length - 1) {
       setCurrentStep(stepOrder[currentIndex + 1]);
@@ -48,13 +66,16 @@ export default function CheckoutFlow() {
   };
 
   const canAccessStep = (step: CheckoutStep): boolean => {
-    const stepOrder: CheckoutStep[] = ['shipping', 'delivery', 'payment', 'review'];
     const stepIndex = stepOrder.indexOf(step);
 
     if (stepIndex === 0) return true;
 
     const previousStep = stepOrder[stepIndex - 1];
     return completedSteps.has(previousStep);
+  };
+
+  const getStepNumber = (step: CheckoutStep): number => {
+    return stepOrder.indexOf(step) + 1;
   };
 
   return (
@@ -71,8 +92,39 @@ export default function CheckoutFlow() {
           }}
           className="space-y-4"
         >
-          <AccordionItem value="shipping" className="border rounded-lg px-6">
-            <AccordionTrigger className="hover:no-underline">
+          {isGuest && (
+            <AccordionItem value="contact" className="border rounded-lg px-6">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex items-center gap-3">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
+                    completedSteps.has('contact')
+                      ? 'bg-green-500 text-white'
+                      : currentStep === 'contact'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {completedSteps.has('contact') ? '✓' : getStepNumber('contact')}
+                  </div>
+                  <span className="text-lg font-semibold">Contact Information</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-4">
+                <ContactStep
+                  onComplete={() => handleStepComplete('contact')}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          <AccordionItem
+            value="shipping"
+            className="border rounded-lg px-6"
+            disabled={!canAccessStep('shipping')}
+          >
+            <AccordionTrigger
+              className="hover:no-underline"
+              disabled={!canAccessStep('shipping')}
+            >
               <div className="flex items-center gap-3">
                 <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${
                   completedSteps.has('shipping')
@@ -81,7 +133,7 @@ export default function CheckoutFlow() {
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground'
                 }`}>
-                  {completedSteps.has('shipping') ? '✓' : '1'}
+                  {completedSteps.has('shipping') ? '✓' : getStepNumber('shipping')}
                 </div>
                 <span className="text-lg font-semibold">Shipping Address</span>
               </div>
@@ -110,7 +162,7 @@ export default function CheckoutFlow() {
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground'
                 }`}>
-                  {completedSteps.has('delivery') ? '✓' : '2'}
+                  {completedSteps.has('delivery') ? '✓' : getStepNumber('delivery')}
                 </div>
                 <span className="text-lg font-semibold">Delivery Method</span>
               </div>
@@ -139,7 +191,7 @@ export default function CheckoutFlow() {
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground'
                 }`}>
-                  {completedSteps.has('payment') ? '✓' : '3'}
+                  {completedSteps.has('payment') ? '✓' : getStepNumber('payment')}
                 </div>
                 <span className="text-lg font-semibold">Payment Method</span>
               </div>
@@ -166,7 +218,7 @@ export default function CheckoutFlow() {
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground'
                 }`}>
-                  4
+                  {getStepNumber('review')}
                 </div>
                 <span className="text-lg font-semibold">Review & Place Order</span>
               </div>
