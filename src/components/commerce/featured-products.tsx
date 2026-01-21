@@ -6,14 +6,23 @@ async function getFeaturedCollectionProducts() {
     'use cache'
     cacheLife('days')
 
-    // Fetch featured products via REST search
-    const result = await searchProducts({ take: 12, skip: 0, sort: 'name:ASC' });
-    return result.data.items;
+    try {
+        // Fetch featured products via REST search
+        const result = await searchProducts({ take: 12, skip: 0, sort: 'name:ASC' });
+        return result.data.items;
+    } catch (error) {
+        // Return empty array during build or when API is unavailable
+        return [];
+    }
 }
 
 
 export async function FeaturedProducts() {
     const products = await getFeaturedCollectionProducts();
+
+    if (products.length === 0) {
+        return null;
+    }
 
     return (
         <ProductCarousel

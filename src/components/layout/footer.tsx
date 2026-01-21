@@ -1,5 +1,6 @@
 import {cacheLife} from 'next/cache';
 import {getTopCollections} from '@/lib/swipall/cached';
+import type { Collection } from '@/lib/swipall/rest-adapter';
 import Image from "next/image";
 import Link from "next/link";
 
@@ -34,7 +35,7 @@ export async function Footer() {
                     <div>
                         <p className="text-sm font-semibold mb-4">Categories</p>
                         <ul className="space-y-2 text-sm text-muted-foreground">
-                            {collections.map((collection) => (
+                            {collections.map((collection: Collection) => (
                                 <li key={collection.id}>
                                     <Link
                                         href={`/collection/${collection.slug}`}

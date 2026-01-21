@@ -9,8 +9,13 @@ export async function getActiveChannelCached() {
     'use cache';
     cacheLife('hours');
 
-    const result = await getActiveChannel();
-    return result.data;
+    try {
+        const result = await getActiveChannel();
+        return result.data;
+    } catch (error) {
+        // Return safe default during build/offline
+        return {} as any;
+    }
 }
 
 /**
@@ -22,8 +27,14 @@ export async function getAvailableCountriesCached() {
     cacheLife('max');
     cacheTag('countries');
 
-    const result = await getAvailableCountries();
-    return result.data;
+    try {
+        const result = await getAvailableCountries();
+        // Ensure we return an array
+        return Array.isArray(result.data) ? result.data : [];
+    } catch (error) {
+        // Return safe default during build/offline
+        return [];
+    }
 }
 
 /**
@@ -35,6 +46,12 @@ export async function getTopCollections() {
     cacheLife('days');
     cacheTag('collections');
 
-    const result = await getTopCollectionsREST();
-    return result.data;
+    try {
+        const result = await getTopCollectionsREST();
+        // Ensure we return an array
+        return Array.isArray(result.data) ? result.data : [];
+    } catch (error) {
+        // Return safe default during build/offline
+        return [];
+    }
 }

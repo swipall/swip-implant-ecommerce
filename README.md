@@ -1,22 +1,58 @@
 <p align="center">
-  <a href="https://vendure.io">
-    <img alt="Vendure logo" height="60" width="auto" src="https://a.storyblok.com/f/328257/699x480/8dbb4c7a3c/logo-icon.png/m/0x80">
+  <a href="https://swipall.io">
+    <img alt="Swipall logo" height="60" width="auto" src="https://a.storyblok.com/f/328257/699x480/8dbb4c7a3c/logo-icon.png/m/0x80">
   </a>
 </p>
 <h1 align="center">
-  Vendure Next.js Storefront Starter
+  Swipall Next.js Storefront (REST API)
 </h1>
 <h3 align="center">
-    A Next.js 16 storefront starter for Vendure headless commerce
+    A Next.js 16 storefront for Swipall REST API with JWT authentication
 </h3>
 <p align="center">
- Use as a foundation to build upon, take inspiration from, or learn the ergonomics of the Vendure Shop API.
+ Migrated from Vendure GraphQL to Swipall REST API with modern authentication patterns.
 </p>
-<h4 align="center">
-  <a href="https://next.vendure.io">Demo</a> |
-  <a href="https://docs.vendure.io">Documentation</a> |
-  <a href="https://vendure.io">Website</a>
-</h4>
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+ and npm/yarn
+- Swipall backend running (Django REST API)
+
+### Environment Configuration
+
+Copy `.env.example` to `.env.local` and update with your Swipall backend URL:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+```env
+SWIPALL_SHOP_API_URL=http://localhost:3001/api
+```
+
+### Installation
+
+```bash
+npm install
+npm run dev
+```
+
+Visit http://localhost:3000 to see your storefront.
+
+## Architecture
+
+### REST API Integration
+- **Client:** [src/lib/swipall/api.ts](src/lib/swipall/api.ts) - HTTP client with JWT support
+- **Adapter:** [src/lib/swipall/rest-adapter.ts](src/lib/swipall/rest-adapter.ts) - Domain functions for products, cart, checkout, orders, auth
+- **Caching:** [src/lib/swipall/cached.ts](src/lib/swipall/cached.ts) - Next.js App Router data caching with `cacheLife` and `cacheTag`
+
+### Authentication
+- JWT tokens stored in httpOnly cookies (secure, SameSite=Lax)
+- Bearer token support for API requests
+- Server Actions for secure mutations
+- Session management with cookie-based JWT
 
 ## Features
 

@@ -6,11 +6,18 @@ import { getActiveOrder } from '@/lib/swipall/rest-adapter';
 export async function Cart() {
     "use cache: private"
 
-    const result = await getActiveOrder({ useAuthToken: true });
-    const activeOrder = result.data;
+    let activeOrder = null;
+    
+    try {
+        const result = await getActiveOrder({ useAuthToken: true });
+        activeOrder = result.data;
+    } catch (error) {
+        console.error('[Cart] Failed to fetch active order:', error);
+        // Continue with empty cart if API fails
+    }
 
     // Handle empty cart case
-    if (!activeOrder || activeOrder.lines.length === 0) {
+    if (!activeOrder || !Array.isArray(activeOrder.lines) || activeOrder.lines.length === 0) {
         return <CartItems activeOrder={null}/>;
     }
 

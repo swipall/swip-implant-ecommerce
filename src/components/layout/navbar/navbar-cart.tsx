@@ -8,9 +8,12 @@ export async function NavbarCart() {
     cacheTag('cart');
     cacheTag('active-order');
 
-    const order = await getActiveOrder({ useAuthToken: true });
-
-    const cartItemCount = order?.data?.totalQuantity || 0;
-
-    return <CartIcon cartItemCount={cartItemCount} />;
+    try {
+        const order = await getActiveOrder({ useAuthToken: true });
+        const cartItemCount = order?.data?.totalQuantity || 0;
+        return <CartIcon cartItemCount={cartItemCount} />;
+    } catch (error) {
+        // During build or when API is unavailable, show cart with 0 items
+        return <CartIcon cartItemCount={0} />;
+    }
 }

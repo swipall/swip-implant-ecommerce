@@ -1,5 +1,6 @@
 import {cacheLife} from 'next/cache';
 import {getTopCollections} from '@/lib/swipall/cached';
+import type { Collection } from '@/lib/swipall/rest-adapter';
 import {
     NavigationMenu,
     NavigationMenuList,
@@ -16,7 +17,7 @@ export async function NavbarCollections() {
     return (
         <NavigationMenu>
             <NavigationMenuList>
-                {collections.map((collection) => (
+                {collections.map((collection: Collection) => (
                     <NavigationMenuItem key={collection.slug}>
                         <NavbarLink href={`/collection/${collection.slug}`}>
                             {collection.name}

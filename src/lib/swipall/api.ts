@@ -2,10 +2,7 @@ import {getAuthToken} from '@/lib/auth';
 
 const SWIPALL_API_URL = process.env.SWIPALL_SHOP_API_URL || process.env.NEXT_PUBLIC_SWIPALL_SHOP_API_URL;
 const SWIPALL_AUTH_TOKEN_HEADER = process.env.SWIPALL_AUTH_TOKEN_HEADER || 'Authorization';
-
-if (!SWIPALL_API_URL) {
-    throw new Error('SWIPALL_SHOP_API_URL or NEXT_PUBLIC_SWIPALL_SHOP_API_URL environment variable is not set');
-}
+const IS_BUILD_TIME = process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production' && !process.env.SWIPALL_SHOP_API_URL && !process.env.NEXT_PUBLIC_SWIPALL_SHOP_API_URL;
 
 interface SwipallRequestOptions {
     token?: string;
@@ -97,6 +94,17 @@ async function request<TResult>(
     body?: unknown,
     options?: SwipallRequestOptions
 ): Promise<{ data: TResult; token?: string }> {
+    // Return empty data during build time if API URL is not configured
+    if (!SWIPALL_API_URL) {
+        if (process.env.NODE_ENV === 'production' && !IS_BUILD_TIME) {
+            throw new Error('SWIPALL_SHOP_API_URL or NEXT_PUBLIC_SWIPALL_SHOP_API_URL environment variable is not set');
+        }
+        // During build, return minimal safe data
+        return {
+            data: {} as TResult,
+        };
+    }
+
     const {
         token,
         useAuthToken,
@@ -135,7 +143,30 @@ async function request<TResult>(
         requestInit.body = JSON.stringify(body);
     }
 
-    const response = await fetch(url, requestInit);
+    let response;
+    try {
+        response = await fetch(url, requestInit);
+    } catch (fetchError: any) {
+        // Network error or URL not configured - return safe fallback
+        console.warn(`[Swipall API] Fetch failed for ${method} ${endpoint}:`, fetchError?.message);
+        
+        // Return appropriate empty data based on endpoint pattern
+        let emptyData: TResult;
+        if (endpoint.includes('/search')) {
+            // Search returns SearchResult structure
+            emptyData = { items: [], totalItems: 0, facetValues: [] } as TResult;
+        } else if (endpoint.includes('/collections') || endpoint.includes('/countries') || endpoint.includes('/addresses') || endpoint.includes('/shipping-methods') || endpoint.includes('/payment-methods')) {
+            // Array endpoints
+            emptyData = [] as TResult;
+        } else {
+            // Object endpoints (product, order, customer, etc.)
+            emptyData = {} as TResult;
+        }
+        
+        return {
+            data: emptyData,
+        };
+    }
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
