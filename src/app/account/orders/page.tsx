@@ -1,10 +1,9 @@
 import type {Metadata} from 'next';
-import {query} from '@/lib/vendure/api';
+import { getCustomerOrders } from '@/lib/swipall/rest-adapter';
 
 export const metadata: Metadata = {
     title: 'My Orders',
 };
-import {GetCustomerOrdersQuery} from '@/lib/vendure/queries';
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from '@/components/ui/table';
 import {
     Pagination,
@@ -31,28 +30,17 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
     const currentPage = parseInt(Array.isArray(pageParam) ? pageParam[0] : pageParam || '1', 10);
     const skip = (currentPage - 1) * ITEMS_PER_PAGE;
 
-    const {data} = await query(
-        GetCustomerOrdersQuery,
-        {
-            options: {
-                take: ITEMS_PER_PAGE,
-                skip,
-                filter: {
-                    state: {
-                        notEq: 'AddingItems',
-                    },
-                },
-            },
-        },
-        {useAuthToken: true}
-    );
+    const result = await getCustomerOrders({
+        take: ITEMS_PER_PAGE,
+        skip,
+    });
 
-    if (!data.activeCustomer) {
+    if (!result.data?.orders) {
         return redirect('/sign-in');
     }
 
-    const orders = data.activeCustomer.orders.items;
-    const totalItems = data.activeCustomer.orders.totalItems;
+    const orders = result.data.orders;
+    const totalItems = result.data.totalItems || 0;
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
     return (
@@ -70,7 +58,7 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                             <TableHeader className="bg-muted">
                                 <TableRow>
                                     <TableHead>Order Number</TableHead>
-                                    <TableHead>Date</TableHead>
+                                    {/* Date column removed due to REST schema */}
                                     <TableHead>Status</TableHead>
                                     <TableHead>Items</TableHead>
                                     <TableHead className="text-right">Total</TableHead>
@@ -88,9 +76,7 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                                                 </Link>
                                             </Button>
                                         </TableCell>
-                                        <TableCell>
-                                            {formatDate(order.createdAt)}
-                                        </TableCell>
+                                        {/* Created date not available in REST response */}
                                         <TableCell>
                                             <OrderStatusBadge state={order.state}/>
                                         </TableCell>
@@ -99,7 +85,7 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                                             {order.lines.length === 1 ? 'item' : 'items'}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Price value={order.totalWithTax} currencyCode={order.currencyCode}/>
+                                            <Price value={order.totalWithTax} />
                                         </TableCell>
                                     </TableRow>
                                 ))}

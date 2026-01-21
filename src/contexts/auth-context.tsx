@@ -1,20 +1,25 @@
 'use client';
 
 import {createContext, ReactNode, useContext} from 'react';
-import {ResultOf} from '@/graphql';
-import {ActiveCustomerFragment} from '@/lib/vendure/fragments';
 
-type ActiveCustomer = ResultOf<typeof ActiveCustomerFragment>;
+interface CurrentUser {
+    id: string;
+    emailAddress: string;
+    firstName: string;
+    lastName: string;
+}
+
+type ActiveCustomer = CurrentUser | null;
 
 interface AuthContextType {
-    activeCustomer: Promise<ActiveCustomer | null>;
+    activeCustomer: Promise<ActiveCustomer>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
     children: ReactNode;
-    initialActiveCustomerPromise: Promise<ActiveCustomer | null>;
+    initialActiveCustomerPromise: Promise<ActiveCustomer>;
 }
 
 export function AuthProvider({children, initialActiveCustomerPromise}: AuthProviderProps) {

@@ -1,6 +1,5 @@
 import {connection} from 'next/server';
-import {query} from '@/lib/vendure/api';
-import {graphql} from '@/graphql';
+import { getOrderDetail } from '@/lib/swipall/rest-adapter';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {CheckCircle2} from 'lucide-react';
@@ -10,58 +9,19 @@ import {Separator} from '@/components/ui/separator';
 import {Price} from '@/components/commerce/price';
 import {notFound} from "next/navigation";
 
-const GetOrderByCodeQuery = graphql(`
-    query GetOrderByCode($code: String!) {
-        orderByCode(code: $code) {
-            id
-            code
-            state
-            totalWithTax
-            currencyCode
-            lines {
-                id
-                productVariant {
-                    id
-                    name
-                    product {
-                        id
-                        name
-                        slug
-                        featuredAsset {
-                            id
-                            preview
-                        }
-                    }
-                }
-                quantity
-                linePriceWithTax
-            }
-            shippingAddress {
-                fullName
-                streetLine1
-                streetLine2
-                city
-                province
-                postalCode
-                country
-            }
-        }
-    }
-`);
-
 export async function OrderConfirmation({params}: PageProps<'/order-confirmation/[code]'>) {
     const {code} = await params;
-    let order;
+    let orderData;
 
     try {
-        const {data} = await query(GetOrderByCodeQuery, {code}, {useAuthToken: true});
-        order = data.orderByCode;
+        const result = await getOrderDetail(code);
+        orderData = result.data;
     }
     catch (error) {
         notFound();
     }
 
-    if (!order) {
+    if (!orderData) {
        notFound();
     }
 
@@ -72,8 +32,8 @@ export async function OrderConfirmation({params}: PageProps<'/order-confirmation
                     <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4"/>
                     <h1 className="text-3xl font-bold mb-2">Order Confirmed!</h1>
                     <p className="text-muted-foreground">
-                        Thank you for your order. Your order number is
-                        <span className="font-semibold">{order.code}</span>
+                        Thank you for your order. Your order number is {' '}
+                        <span className="font-semibold">{orderData.code}</span>
                     </p>
                 </div>
 
@@ -82,10 +42,10 @@ export async function OrderConfirmation({params}: PageProps<'/order-confirmation
                         <CardTitle>Order Summary</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {order.lines.map((line) => (
+                        {orderData.lines.map((line) => (
                             <div key={line.id} className="flex gap-4 items-center">
                                 {line.productVariant.product.featuredAsset && (
-                                    <div className="flex-shrink-0">
+                                    <div className="shrink-0">
                                         <Image
                                             src={line.productVariant.product.featuredAsset.preview}
                                             alt={line.productVariant.name}
@@ -98,9 +58,7 @@ export async function OrderConfirmation({params}: PageProps<'/order-confirmation
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium">{line.productVariant.product.name}</p>
                                     {line.productVariant.name !== line.productVariant.product.name && (
-                                        <p className="text-sm text-muted-foreground">
-                                            {line.productVariant.name}
-                                        </p>
+                                        <p className="text-sm text-muted-foreground">{line.productVariant.name}</p>
                                     )}
                                 </div>
                                 <div className="text-center w-16">
@@ -109,7 +67,7 @@ export async function OrderConfirmation({params}: PageProps<'/order-confirmation
                                 </div>
                                 <div className="text-right w-24">
                                     <p className="font-semibold">
-                                        <Price value={line.linePriceWithTax} currencyCode={order.currencyCode}/>
+                                        <Price value={line.linePriceWithTax} currencyCode={orderData.currencyCode}/>
                                     </p>
                                 </div>
                             </div>
@@ -120,28 +78,32 @@ export async function OrderConfirmation({params}: PageProps<'/order-confirmation
                         <div className="flex justify-between font-bold text-lg">
                             <span>Total</span>
                             <span>
-                <Price value={order.totalWithTax} currencyCode={order.currencyCode}/>
-              </span>
+                                <Price value={orderData.totalWithTax} currencyCode={orderData.currencyCode}/>
+                            </span>
                         </div>
                     </CardContent>
                 </Card>
 
-                {order.shippingAddress && (
+                {orderData.shippingAddress && (
                     <Card className="mb-6">
                         <CardHeader>
                             <CardTitle>Shipping Address</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="font-medium">{order.shippingAddress.fullName}</p>
+                            <p className="font-medium">{orderData.shippingAddress.fullName}</p>
                             <p className="text-sm text-muted-foreground mt-1">
-                                {order.shippingAddress.streetLine1}
-                                {order.shippingAddress.streetLine2 && `, ${order.shippingAddress.streetLine2}`}
+                                {orderData.shippingAddress.streetLine1}
+                                {orderData.shippingAddress.streetLine2 && `, ${orderData.shippingAddress.streetLine2}`}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                                {order.shippingAddress.city}, {order.shippingAddress.province}{' '}
-                                {order.shippingAddress.postalCode}
+                                {orderData.shippingAddress.city}, {orderData.shippingAddress.province}{' '}
+                                {orderData.shippingAddress.postalCode}
                             </p>
-                            <p className="text-sm text-muted-foreground">{order.shippingAddress.country}</p>
+                            <p className="text-sm text-muted-foreground">
+                                {typeof orderData.shippingAddress.country === 'string' 
+                                    ? orderData.shippingAddress.country 
+                                    : orderData.shippingAddress.country?.name}
+                            </p>
                         </CardContent>
                     </Card>
                 )}

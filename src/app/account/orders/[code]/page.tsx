@@ -1,13 +1,12 @@
 import type {Metadata} from 'next';
 import {ChevronLeft} from 'lucide-react';
-import {query} from '@/lib/vendure/api';
-import {GetOrderDetailQuery} from '@/lib/vendure/queries';
+import { getOrderDetail } from '@/lib/swipall/rest-adapter';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {Separator} from '@/components/ui/separator';
 import Image from 'next/image';
-import {getActiveCustomer} from "@/lib/vendure/actions";
+import {getActiveCustomer} from "@/lib/swipall/actions";
 import {notFound, redirect} from "next/navigation";
 import {Price} from '@/components/commerce/price';
 import {OrderStatusBadge} from '@/components/commerce/order-status-badge';
@@ -28,21 +27,16 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
     const {code} = params;
     const activeCustomer = await getActiveCustomer();
 
-    const {data} = await query(
-        GetOrderDetailQuery,
-        {code},
-        {useAuthToken: true, fetch: {}}
-    );
+    const orderRes = await getOrderDetail(code);
+    const order = orderRes.data;
 
-    if (!data.orderByCode) {
+    if (!order) {
         return redirect('/account/orders');
     }
 
-    if (data.orderByCode.customer?.id !== activeCustomer?.id) {
+    if (order.customer?.id !== activeCustomer?.id) {
         return notFound();
     }
-
-    const order = data.orderByCode;
 
     return (
         <div>
@@ -56,9 +50,7 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold">Order {order.code}</h1>
-                        <p className="text-muted-foreground mt-1">
-                            Placed on {formatDate(order.createdAt, 'long')}
-                        </p>
+                        {/* Created date not available in REST response */}
                     </div>
                     <OrderStatusBadge state={order.state}/>
                 </div>
@@ -77,7 +69,7 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                                 {order.lines.map((line) => (
                                     <div key={line.id} className="flex gap-4">
                                         <div
-                                            className="relative h-20 w-20 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                            className="relative h-20 w-20 rounded-md overflow-hidden bg-gray-100 shrink-0">
                                             {line.productVariant.product.featuredAsset && (
                                                 <Image
                                                     src={line.productVariant.product.featuredAsset.preview}
@@ -103,11 +95,10 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                                         </div>
                                         <div className="text-right">
                                             <p className="font-medium">
-                                                <Price value={line.linePriceWithTax} currencyCode={order.currencyCode}/>
+                                                <Price value={line.linePriceWithTax} />
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                Qty: {line.quantity} × <Price value={line.unitPriceWithTax}
-                                                                              currencyCode={order.currencyCode}/>
+                                                Qty: {line.quantity} × <Price value={line.unitPriceWithTax} />
                                             </p>
                                         </div>
                                     </div>
@@ -125,15 +116,13 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Subtotal</span>
-                                    <span><Price value={order.subTotalWithTax}
-                                                 currencyCode={order.currencyCode}/></span>
+                                    <span><Price value={order.subTotalWithTax || 0} /></span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Shipping</span>
-                                    <span><Price value={order.shippingWithTax}
-                                                 currencyCode={order.currencyCode}/></span>
+                                    <span><Price value={order.shippingWithTax} /></span>
                                 </div>
-                                {order.discounts.length > 0 && (
+                                {order.discounts && order.discounts.length > 0 && (
                                     <>
                                         {order.discounts.map((discount, idx) => (
                                             <div key={idx} className="flex justify-between text-sm">
@@ -141,8 +130,7 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                                                     {discount.description}
                                                 </span>
                                                 <span className="text-green-600">
-                                                    -<Price value={discount.amountWithTax}
-                                                            currencyCode={order.currencyCode}/>
+                                                        -<Price value={discount.amountWithTax} />
                                                 </span>
                                             </div>
                                         ))}
@@ -151,7 +139,7 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                                 <Separator className="my-2"/>
                                 <div className="flex justify-between font-bold text-lg">
                                     <span>Total</span>
-                                    <span><Price value={order.totalWithTax} currencyCode={order.currencyCode}/></span>
+                                    <span><Price value={order.totalWithTax} /></span>
                                 </div>
                             </div>
                         </CardContent>
@@ -179,7 +167,7 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                                     {order.shippingAddress.city}, {order.shippingAddress.province}{' '}
                                     {order.shippingAddress.postalCode}
                                 </p>
-                                <p>{order.shippingAddress.country}</p>
+                                <p>{String(order.shippingAddress.country)}</p>
                                 {order.shippingAddress.phoneNumber && (
                                     <p className="mt-2">{order.shippingAddress.phoneNumber}</p>
                                 )}
@@ -206,7 +194,7 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                                     {order.billingAddress.city}, {order.billingAddress.province}{' '}
                                     {order.billingAddress.postalCode}
                                 </p>
-                                <p>{order.billingAddress.country}</p>
+                                <p>{String(order.billingAddress.country)}</p>
                                 {order.billingAddress.phoneNumber && (
                                     <p className="mt-2">{order.billingAddress.phoneNumber}</p>
                                 )}
@@ -214,43 +202,7 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                         </Card>
                     )}
 
-                    {/* Payment Information */}
-                    {order.payments && order.payments.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Payment</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {order.payments.map((payment) => (
-                                    <div key={payment.id} className="space-y-1 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Method</span>
-                                            <span className="font-medium">{payment.method}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Amount</span>
-                                            <span><Price value={payment.amount}
-                                                         currencyCode={order.currencyCode}/></span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Status</span>
-                                            <Badge variant="secondary" className="text-xs">
-                                                {payment.state}
-                                            </Badge>
-                                        </div>
-                                        {payment.transactionId && (
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Transaction ID</span>
-                                                <span className="font-mono text-xs">
-                                                    {payment.transactionId}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    )}
+                    {/* Payment Information - not available in REST schema */}
 
                     {/* Shipping Method */}
                     {order.shippingLines && order.shippingLines.length > 0 && (
@@ -268,7 +220,7 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                                             </p>
                                         )}
                                         <p className="font-medium">
-                                            <Price value={line.priceWithTax} currencyCode={order.currencyCode}/>
+                                            <Price value={line.priceWithTax} />
                                         </p>
                                     </div>
                                 ))}

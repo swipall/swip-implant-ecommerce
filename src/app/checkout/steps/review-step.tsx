@@ -81,7 +81,11 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
                 <p className="text-muted-foreground">
                   {order.shippingAddress.city}, {order.shippingAddress.province} {order.shippingAddress.postalCode}
                 </p>
-                <p className="text-muted-foreground">{order.shippingAddress.country}</p>
+                <p className="text-muted-foreground">
+                  {typeof order.shippingAddress.country === 'string' 
+                    ? order.shippingAddress.country 
+                    : order.shippingAddress.country?.name}
+                </p>
                 <p className="text-muted-foreground">{order.shippingAddress.phoneNumber}</p>
               </div>
               <Button

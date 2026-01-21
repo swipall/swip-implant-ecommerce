@@ -1,9 +1,7 @@
 import { ProductCarousel } from "@/components/commerce/product-carousel";
 import { cacheLife, cacheTag } from "next/cache";
-import { query } from "@/lib/vendure/api";
-import { GetCollectionProductsQuery } from "@/lib/vendure/queries";
-import { readFragment } from "@/graphql";
-import { ProductCardFragment } from "@/lib/vendure/fragments";
+import { searchProducts } from '@/lib/swipall/rest-adapter';
+import type { Product } from '@/lib/swipall/rest-adapter';
 
 interface RelatedProductsProps {
     collectionSlug: string;
@@ -15,22 +13,15 @@ async function getRelatedProducts(collectionSlug: string, currentProductId: stri
     cacheLife('hours')
     cacheTag(`related-products-${collectionSlug}`)
 
-    const result = await query(GetCollectionProductsQuery, {
-        slug: collectionSlug,
-        input: {
-            collectionSlug: collectionSlug,
-            take: 13, // Fetch extra to account for filtering out current product
-            skip: 0,
-            groupByProduct: true
-        }
+    const result = await searchProducts({
+        query: collectionSlug,
+        take: 13, // Fetch extra to account for filtering out current product
+        skip: 0
     });
 
     // Filter out the current product and limit to 12
-    return result.data.search.items
-        .filter(item => {
-            const product = readFragment(ProductCardFragment, item);
-            return product.productId !== currentProductId;
-        })
+    return result.data.items
+        .filter((product: Product) => product.id !== currentProductId)
         .slice(0, 12);
 }
 

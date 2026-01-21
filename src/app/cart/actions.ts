@@ -1,38 +1,57 @@
 'use server';
 
-import {mutate} from '@/lib/vendure/api';
 import {
-    RemoveFromCartMutation,
-    AdjustCartItemMutation,
-    ApplyPromotionCodeMutation,
-    RemovePromotionCodeMutation
-} from '@/lib/vendure/mutations';
+    removeFromCart as apiRemoveFromCart,
+    adjustQuantity as apiAdjustQuantity,
+    applyPromotionCode as apiApplyPromotion,
+    removePromotionCode as apiRemovePromotion
+} from '@/lib/swipall/rest-adapter';
 import {updateTag} from 'next/cache';
 
 export async function removeFromCart(lineId: string) {
-    await mutate(RemoveFromCartMutation, {lineId}, {useAuthToken: true});
-    updateTag('cart');
+    try {
+        await apiRemoveFromCart(lineId, {useAuthToken: true});
+        updateTag('cart');
+    } catch (error) {
+        console.error('Error removing from cart:', error);
+        throw error;
+    }
 }
 
 export async function adjustQuantity(lineId: string, quantity: number) {
-    await mutate(AdjustCartItemMutation, {lineId, quantity}, {useAuthToken: true});
-    updateTag('cart');
+    try {
+        await apiAdjustQuantity(lineId, quantity, {useAuthToken: true});
+        updateTag('cart');
+    } catch (error) {
+        console.error('Error adjusting quantity:', error);
+        throw error;
+    }
 }
 
 export async function applyPromotionCode(formData: FormData) {
     const code = formData.get('code') as string;
     if (!code) return;
 
-    const res = await mutate(ApplyPromotionCodeMutation, {couponCode: code}, {useAuthToken: true});
-    console.log({res: res.data.applyCouponCode})
-    updateTag('cart');
+    try {
+        const res = await apiApplyPromotion(code, {useAuthToken: true});
+        console.log({res});
+        updateTag('cart');
+    } catch (error) {
+        console.error('Error applying promotion:', error);
+        throw error;
+    }
 }
 
 export async function removePromotionCode(formData: FormData) {
     const code = formData.get('code') as string;
     if (!code) return;
 
-    const res = await mutate(RemovePromotionCodeMutation, {couponCode: code}, {useAuthToken: true});
-    console.log({removeRes: res.data.removeCouponCode});
-    updateTag('cart');
+    try {
+        const res = await apiRemovePromotion(code, {useAuthToken: true});
+        console.log({removeRes: res});
+        updateTag('cart');
+    } catch (error) {
+        console.error('Error removing promotion:', error);
+        throw error;
+    }
 }

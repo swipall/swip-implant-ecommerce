@@ -9,7 +9,6 @@ interface ProductImageCarouselProps {
     images: Array<{
         id: string;
         preview: string;
-        source: string;
     }>;
 }
 
@@ -37,7 +36,7 @@ export function ProductImageCarousel({ images }: ProductImageCarouselProps) {
             {/* Main Image */}
             <div className="relative aspect-square bg-muted rounded-lg overflow-hidden group">
                 <Image
-                    src={images[currentIndex].source}
+                    src={images[currentIndex].preview}
                     alt={`Product image ${currentIndex + 1}`}
                     fill
                     className="object-cover"

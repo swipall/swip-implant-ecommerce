@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { query } from '@/lib/vendure/api';
-import { SearchProductsQuery, GetCollectionProductsQuery } from '@/lib/vendure/queries';
+import { searchProducts, getCollection } from '@/lib/swipall/rest-adapter';
 import { ProductGrid } from '@/components/commerce/product-grid';
 import { FacetFilters } from '@/components/commerce/facet-filters';
 import { ProductGridSkeleton } from '@/components/shared/product-grid-skeleton';
@@ -19,12 +18,13 @@ async function getCollectionProducts(slug: string, searchParams: { [key: string]
     cacheLife('hours');
     cacheTag(`collection-${slug}`);
 
-    return query(SearchProductsQuery, {
-        input: buildSearchInput({
-            searchParams,
-            collectionSlug: slug
-        })
+    const params = buildSearchInput({
+        searchParams,
+        collectionSlug: slug,
     });
+
+    const results = await searchProducts(params);
+    return { data: results.data, token: results.token };
 }
 
 async function getCollectionMetadata(slug: string) {
@@ -32,10 +32,7 @@ async function getCollectionMetadata(slug: string) {
     cacheLife('hours');
     cacheTag(`collection-meta-${slug}`);
 
-    return query(GetCollectionProductsQuery, {
-        slug,
-        input: { take: 0, collectionSlug: slug, groupByProduct: true },
-    });
+    return await getCollection(slug);
 }
 
 export async function generateMetadata({
@@ -43,7 +40,7 @@ export async function generateMetadata({
 }: PageProps<'/collection/[slug]'>): Promise<Metadata> {
     const { slug } = await params;
     const result = await getCollectionMetadata(slug);
-    const collection = result.data.collection;
+    const collection = result.data;
 
     if (!collection) {
         return {
@@ -51,9 +48,7 @@ export async function generateMetadata({
         };
     }
 
-    const description =
-        truncateDescription(collection.description) ||
-        `Browse our ${collection.name} collection at ${SITE_NAME}`;
+    const description = `Browse our ${collection.name} collection at ${SITE_NAME}`;
 
     return {
         title: collection.name,
@@ -66,15 +61,12 @@ export async function generateMetadata({
             description,
             type: 'website',
             url: buildCanonicalUrl(`/collection/${collection.slug}`),
-            images: buildOgImages(collection.featuredAsset?.preview, collection.name),
+            images: buildOgImages(undefined, collection.name),
         },
         twitter: {
             card: 'summary_large_image',
             title: collection.name,
             description,
-            images: collection.featuredAsset?.preview
-                ? [collection.featuredAsset.preview]
-                : undefined,
         },
     };
 }

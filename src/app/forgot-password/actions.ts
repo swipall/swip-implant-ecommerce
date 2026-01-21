@@ -1,7 +1,6 @@
 'use server';
 
-import {mutate} from '@/lib/vendure/api';
-import {RequestPasswordResetMutation} from '@/lib/vendure/mutations';
+import {requestPasswordReset} from '@/lib/swipall/rest-adapter';
 
 export async function requestPasswordResetAction(prevState: { error?: string; success?: boolean } | undefined, formData: FormData) {
     const emailAddress = formData.get('emailAddress') as string;
@@ -11,18 +10,10 @@ export async function requestPasswordResetAction(prevState: { error?: string; su
     }
 
     try {
-        const result = await mutate(RequestPasswordResetMutation, {
-            emailAddress,
-        });
-
-        const resetResult = result.data.requestPasswordReset;
-
-        if (resetResult?.__typename !== 'Success') {
-            return {error: resetResult?.message || 'Failed to request password reset'};
-        }
-
+        await requestPasswordReset(emailAddress);
         return {success: true};
     } catch (error: unknown) {
-        return {error: 'An unexpected error occurred. Please try again.'};
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+        return {error: message};
     }
 }

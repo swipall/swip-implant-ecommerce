@@ -1,7 +1,6 @@
 'use server';
 
-import {mutate} from '@/lib/vendure/api';
-import {ResetPasswordMutation} from '@/lib/vendure/mutations';
+import {resetPassword} from '@/lib/swipall/rest-adapter';
 import {setAuthToken} from '@/lib/auth';
 import {redirect} from 'next/navigation';
 
@@ -18,22 +17,17 @@ export async function resetPasswordAction(prevState: { error?: string } | undefi
         return {error: 'Passwords do not match'};
     }
 
+    try {
+        const result = await resetPassword(token, password);
 
-    const result = await mutate(ResetPasswordMutation, {
-        token,
-        password,
-    });
+        // Store the token in a cookie if returned
+        if (result.token) {
+            await setAuthToken(result.token);
+        }
 
-    const resetResult = result.data.resetPassword;
-
-    if (resetResult.__typename !== 'CurrentUser') {
-        return {error: resetResult.message};
+        redirect('/');
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to reset password';
+        return {error: message};
     }
-
-    // Store the token in a cookie if returned
-    if (result.token) {
-        await setAuthToken(result.token);
-    }
-
-    redirect('/');
 }

@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { mutate } from '@/lib/vendure/api';
-import { UpdateCustomerEmailAddressMutation } from '@/lib/vendure/mutations';
+import { updateCustomerEmailAddress } from '@/lib/swipall/rest-adapter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -33,10 +32,9 @@ async function VerifyEmailContent({searchParams}: {searchParams: Promise<Record<
     }
 
     try {
-        const result = await mutate(UpdateCustomerEmailAddressMutation, { token: token! }, { useAuthToken: true });
-        const updateResult = result.data.updateCustomerEmailAddress;
+        const result = await updateCustomerEmailAddress(token!, { useAuthToken: true });
 
-        if (updateResult.__typename === 'Success') {
+        if (result.data.success) {
             return (
                 <Card className="max-w-md mx-auto">
                     <CardHeader>
@@ -62,7 +60,7 @@ async function VerifyEmailContent({searchParams}: {searchParams: Promise<Record<
                 <CardHeader>
                     <CardTitle>Verification Failed</CardTitle>
                     <CardDescription>
-                        {updateResult.message || 'Unable to verify your email address.'}
+                        Unable to verify your email address.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

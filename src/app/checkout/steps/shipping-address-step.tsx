@@ -58,6 +58,8 @@ export default function ShippingAddressStep({ onComplete }: ShippingAddressStepP
       : '';
 
     if (isGuest && order.shippingAddress?.streetLine1) {
+      const addressCountry = order.shippingAddress.country;
+      const countryName = typeof addressCountry === 'string' ? addressCountry : addressCountry?.name;
       return {
         fullName: order.shippingAddress.fullName || customerFullName,
         streetLine1: order.shippingAddress.streetLine1 || '',
@@ -65,7 +67,7 @@ export default function ShippingAddressStep({ onComplete }: ShippingAddressStepP
         city: order.shippingAddress.city || '',
         province: order.shippingAddress.province || '',
         postalCode: order.shippingAddress.postalCode || '',
-        countryCode: countries.find(c => c.name === order.shippingAddress?.country)?.code || countries[0]?.code || 'US',
+        countryCode: countries.find(c => c.name === countryName)?.code || countries[0]?.code || 'US',
         phoneNumber: order.shippingAddress.phoneNumber || order.customer?.phoneNumber || '',
         company: order.shippingAddress.company || '',
       };

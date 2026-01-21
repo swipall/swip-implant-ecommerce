@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 interface EditProfileFormProps {
     customer: {
-        firstName: string;
-        lastName: string;
+        firstName?: string;
+        lastName?: string;
     } | null;
 }
 

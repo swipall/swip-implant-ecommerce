@@ -1,5 +1,5 @@
 import type {Metadata} from 'next';
-import { getActiveCustomer } from '@/lib/vendure/actions';
+import { getActiveCustomer } from '@/lib/swipall/actions';
 
 export const metadata: Metadata = {
     title: 'Profile',

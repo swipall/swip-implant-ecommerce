@@ -1,23 +1,15 @@
-export interface SearchInputParams {
-    term?: string;
-    collectionSlug?: string;
-    take: number;
-    skip: number;
-    groupByProduct: boolean;
-    sort: { name?: 'ASC' | 'DESC'; price?: 'ASC' | 'DESC' };
-    facetValueFilters?: Array<{ and: string }>;
-}
+import type { SearchInput } from '@/lib/swipall/rest-adapter';
 
 interface BuildSearchInputOptions {
     searchParams: { [key: string]: string | string[] | undefined };
     collectionSlug?: string;
 }
 
-export function buildSearchInput({ searchParams, collectionSlug }: BuildSearchInputOptions): SearchInputParams {
+export function buildSearchInput({ searchParams, collectionSlug }: BuildSearchInputOptions): SearchInput {
     const page = Number(searchParams.page) || 1;
     const take = 12;
     const skip = (page - 1) * take;
-    const sort = (searchParams.sort as string) || 'name-asc';
+    const sortParam = (searchParams.sort as string) || 'name-asc';
     const searchTerm = searchParams.q as string;
 
     // Extract facet value IDs from search params
@@ -27,23 +19,21 @@ export function buildSearchInput({ searchParams, collectionSlug }: BuildSearchIn
             : [searchParams.facets]
         : [];
 
-    // Map sort parameter to Vendure SearchResultSortParameter
-    const sortMapping: Record<string, { name?: 'ASC' | 'DESC'; price?: 'ASC' | 'DESC' }> = {
-        'name-asc': { name: 'ASC' },
-        'name-desc': { name: 'DESC' },
-        'price-asc': { price: 'ASC' },
-        'price-desc': { price: 'DESC' },
+    // Map sort parameter to a simple string for REST API
+    const sortMapping: Record<string, string> = {
+        'name-asc': 'name_asc',
+        'name-desc': 'name_desc',
+        'price-asc': 'price_asc',
+        'price-desc': 'price_desc',
     };
 
     return {
-        ...(searchTerm && { term: searchTerm }),
-        ...(collectionSlug && { collectionSlug }),
+        ...(searchTerm && { query: searchTerm }),
         take,
         skip,
-        groupByProduct: true,
-        sort: sortMapping[sort] || sortMapping['name-asc'],
+        sort: sortMapping[sortParam] || sortMapping['name-asc'],
         ...(facetValueIds.length > 0 && {
-            facetValueFilters: facetValueIds.map(id => ({ and: id }))
+            facets: { values: facetValueIds }
         })
     };
 }

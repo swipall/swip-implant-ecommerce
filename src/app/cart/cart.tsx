@@ -1,17 +1,13 @@
 import {CartItems} from "@/app/cart/cart-items";
 import {OrderSummary} from "@/app/cart/order-summary";
 import {PromotionCode} from "@/app/cart/promotion-code";
-import {query} from "@/lib/vendure/api";
-import {GetActiveOrderQuery} from "@/lib/vendure/queries";
+import { getActiveOrder } from '@/lib/swipall/rest-adapter';
 
 export async function Cart() {
     "use cache: private"
 
-    const {data} = await query(GetActiveOrderQuery, {}, {
-        useAuthToken: true,
-    });
-
-    const activeOrder = data.activeOrder;
+    const result = await getActiveOrder({ useAuthToken: true });
+    const activeOrder = result.data;
 
     // Handle empty cart case
     if (!activeOrder || activeOrder.lines.length === 0) {
@@ -20,11 +16,11 @@ export async function Cart() {
 
     return (
         <div className="grid lg:grid-cols-3 gap-8">
-            <CartItems activeOrder={activeOrder}/>
+            <CartItems activeOrder={activeOrder as any}/>
 
             <div className="lg:col-span-1">
-                <OrderSummary activeOrder={activeOrder}/>
-                <PromotionCode activeOrder={activeOrder}/>
+                <OrderSummary activeOrder={activeOrder as any}/>
+                <PromotionCode activeOrder={activeOrder as any}/>
             </div>
         </div>
     )

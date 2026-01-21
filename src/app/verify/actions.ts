@@ -1,7 +1,6 @@
 'use server';
 
-import {mutate} from '@/lib/vendure/api';
-import {VerifyCustomerAccountMutation} from '@/lib/vendure/mutations';
+import {verifyCustomerAccount} from '@/lib/swipall/rest-adapter';
 import {setAuthToken} from '@/lib/auth';
 
 export async function verifyAccountAction(token: string, password?: string) {
@@ -10,16 +9,7 @@ export async function verifyAccountAction(token: string, password?: string) {
     }
 
     try {
-        const result = await mutate(VerifyCustomerAccountMutation, {
-            token,
-            password: password || undefined,
-        });
-
-        const verifyResult = result.data.verifyCustomerAccount;
-
-        if (verifyResult.__typename !== 'CurrentUser') {
-            return {error: verifyResult.message};
-        }
+        const result = await verifyCustomerAccount(token);
 
         // Store the token in a cookie if returned
         if (result.token) {
@@ -28,6 +18,7 @@ export async function verifyAccountAction(token: string, password?: string) {
 
         return {success: true};
     } catch (error: unknown) {
-        return {error: 'An unexpected error occurred. Please try again.'};
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+        return {error: message};
     }
 }

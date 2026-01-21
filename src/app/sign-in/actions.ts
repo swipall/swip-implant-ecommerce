@@ -1,7 +1,6 @@
 'use server';
 
-import {mutate} from '@/lib/vendure/api';
-import {LoginMutation, LogoutMutation} from '@/lib/vendure/mutations';
+import {login, logout} from '@/lib/swipall/rest-adapter';
 import {removeAuthToken, setAuthToken} from '@/lib/auth';
 import {redirect} from "next/navigation";
 import {revalidatePath} from "next/cache";
@@ -11,39 +10,39 @@ export async function loginAction(prevState: { error?: string } | undefined, for
     const password = formData.get('password') as string;
     const redirectTo = formData.get('redirectTo') as string | null;
 
-    const result = await mutate(LoginMutation, {
-        username,
-        password,
-    }, { useAuthToken: true });
+    try {
+        const result = await login({
+            username,
+            password,
+        });
 
-    const loginResult = result.data.login;
-
-    if (loginResult.__typename !== 'CurrentUser') {
-        if (loginResult.__typename === 'NotVerifiedError') {
-            return { error: 'Please verify your email address before signing in.' };
+        // Store the token in a cookie if returned
+        if (result.token) {
+            await setAuthToken(result.token);
         }
-        return { error: 'Invalid email or password.' };
+
+        revalidatePath('/', 'layout');
+
+        // Validate redirectTo is a safe internal path
+        const safeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//')
+            ? redirectTo
+            : '/';
+
+        redirect(safeRedirect);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Invalid email or password.';
+        return { error: message };
     }
-
-    // Store the token in a cookie if returned
-    if (result.token) {
-        await setAuthToken(result.token);
-    }
-
-    revalidatePath('/', 'layout');
-
-    // Validate redirectTo is a safe internal path
-    const safeRedirect = redirectTo?.startsWith('/') && !redirectTo.startsWith('//')
-        ? redirectTo
-        : '/';
-
-    redirect(safeRedirect);
-
 }
 
 export async function logoutAction() {
-    await mutate(LogoutMutation);
+    try {
+        await logout({ useAuthToken: true });
+    } catch (error) {
+        // Continue with logout even if API call fails
+        console.error('Logout error:', error);
+    }
+    
     await removeAuthToken();
-
     redirect('/')
 }

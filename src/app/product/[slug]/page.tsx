@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { query } from '@/lib/vendure/api';
-import { GetProductDetailQuery } from '@/lib/vendure/queries';
+import { getProduct } from '@/lib/swipall/rest-adapter';
 import { ProductImageCarousel } from '@/components/commerce/product-image-carousel';
 import { ProductInfo } from '@/components/commerce/product-info';
 import { RelatedProducts } from '@/components/commerce/related-products';
@@ -24,7 +23,7 @@ async function getProductData(slug: string) {
     cacheLife('hours');
     cacheTag(`product-${slug}`);
 
-    return await query(GetProductDetailQuery, { slug });
+    return await getProduct(slug);
 }
 
 export async function generateMetadata({
@@ -32,7 +31,7 @@ export async function generateMetadata({
 }: PageProps<'/product/[slug]'>): Promise<Metadata> {
     const { slug } = await params;
     const result = await getProductData(slug);
-    const product = result.data.product;
+    const product = result.data;
 
     if (!product) {
         return {
@@ -41,7 +40,7 @@ export async function generateMetadata({
     }
 
     const description = truncateDescription(product.description);
-    const ogImage = product.assets?.[0]?.preview;
+    const ogImage = product.featuredAsset?.preview;
 
     return {
         title: product.name,
@@ -71,14 +70,14 @@ export default async function ProductDetailPage({params, searchParams}: PageProp
 
     const result = await getProductData(slug);
 
-    const product = result.data.product;
+    const product = result.data;
 
     if (!product) {
         notFound();
     }
 
     // Get the primary collection (prefer deepest nested / most specific)
-    const primaryCollection = product.collections?.find(c => c.parent?.id) ?? product.collections?.[0];
+    const primaryCollection = product.collections?.[0];
 
     return (
         <>
@@ -86,12 +85,15 @@ export default async function ProductDetailPage({params, searchParams}: PageProp
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
                     {/* Left Column: Image Carousel */}
                     <div className="lg:sticky lg:top-20 lg:self-start">
-                        <ProductImageCarousel images={product.assets} />
+                        <ProductImageCarousel images={product.featuredAsset ? [product.featuredAsset] : []} />
                     </div>
 
                     {/* Right Column: Product Info */}
                     <div>
-                        <ProductInfo product={product} searchParams={searchParamsResolved} />
+                        <h1 className="text-2xl font-bold mb-4">{product.name}</h1>
+                        {product.description && (
+                            <p className="text-muted-foreground mb-6">{product.description}</p>
+                        )}
                     </div>
                 </div>
             </div>

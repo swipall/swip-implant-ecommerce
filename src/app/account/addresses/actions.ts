@@ -1,11 +1,12 @@
 'use server';
 
-import {mutate} from '@/lib/vendure/api';
 import {
-    CreateCustomerAddressMutation,
-    UpdateCustomerAddressMutation,
-    DeleteCustomerAddressMutation,
-} from '@/lib/vendure/mutations';
+    createCustomerAddress as apiCreateAddress,
+    updateCustomerAddress as apiUpdateAddress,
+    deleteCustomerAddress as apiDeleteAddress,
+    setDefaultShippingAddress as apiSetDefaultShipping,
+    setDefaultBillingAddress as apiSetDefaultBilling,
+} from '@/lib/swipall/rest-adapter';
 import {revalidatePath} from 'next/cache';
 
 interface AddressInput {
@@ -25,101 +26,53 @@ interface UpdateAddressInput extends AddressInput {
 }
 
 export async function createAddress(address: AddressInput) {
-    const result = await mutate(
-        CreateCustomerAddressMutation,
-        {input: address},
-        {useAuthToken: true}
-    );
-
-    if (!result.data.createCustomerAddress) {
+    try {
+        const result = await apiCreateAddress(address, {useAuthToken: true});
+        revalidatePath('/account/addresses');
+        return result.data;
+    } catch (error) {
         throw new Error('Failed to create address');
     }
-
-    revalidatePath('/account/addresses');
-    return result.data.createCustomerAddress;
 }
 
 export async function updateAddress(address: UpdateAddressInput) {
     const {id, ...input} = address;
 
-    const result = await mutate(
-        UpdateCustomerAddressMutation,
-        {
-            input: {
-                id,
-                fullName: input.fullName,
-                streetLine1: input.streetLine1,
-                streetLine2: input.streetLine2,
-                city: input.city,
-                province: input.province,
-                postalCode: input.postalCode,
-                countryCode: input.countryCode,
-                phoneNumber: input.phoneNumber,
-                company: input.company,
-            },
-        },
-        {useAuthToken: true}
-    );
-
-    if (!result.data.updateCustomerAddress) {
+    try {
+        const result = await apiUpdateAddress(id, input, {useAuthToken: true});
+        revalidatePath('/account/addresses');
+        return result.data;
+    } catch (error) {
         throw new Error('Failed to update address');
     }
-
-    revalidatePath('/account/addresses');
-    return result.data.updateCustomerAddress;
 }
 
 export async function deleteAddress(id: string) {
-    const result = await mutate(
-        DeleteCustomerAddressMutation,
-        {id},
-        {useAuthToken: true}
-    );
-
-    if (!result.data.deleteCustomerAddress.success) {
+    try {
+        const result = await apiDeleteAddress(id, {useAuthToken: true});
+        revalidatePath('/account/addresses');
+        return result.data;
+    } catch (error) {
         throw new Error('Failed to delete address');
     }
-
-    revalidatePath('/account/addresses');
-    return result.data.deleteCustomerAddress;
 }
 
 export async function setDefaultShippingAddress(id: string) {
-    const result = await mutate(
-        UpdateCustomerAddressMutation,
-        {
-            input: {
-                id,
-                defaultShippingAddress: true,
-            },
-        },
-        {useAuthToken: true}
-    );
-
-    if (!result.data.updateCustomerAddress) {
+    try {
+        const result = await apiSetDefaultShipping(id, {useAuthToken: true});
+        revalidatePath('/account/addresses');
+        return result.data;
+    } catch (error) {
         throw new Error('Failed to set default shipping address');
     }
-
-    revalidatePath('/account/addresses');
-    return result.data.updateCustomerAddress;
 }
 
 export async function setDefaultBillingAddress(id: string) {
-    const result = await mutate(
-        UpdateCustomerAddressMutation,
-        {
-            input: {
-                id,
-                defaultBillingAddress: true,
-            },
-        },
-        {useAuthToken: true}
-    );
-
-    if (!result.data.updateCustomerAddress) {
+    try {
+        const result = await apiSetDefaultBilling(id, {useAuthToken: true});
+        revalidatePath('/account/addresses');
+        return result.data;
+    } catch (error) {
         throw new Error('Failed to set default billing address');
     }
-
-    revalidatePath('/account/addresses');
-    return result.data.updateCustomerAddress;
 }

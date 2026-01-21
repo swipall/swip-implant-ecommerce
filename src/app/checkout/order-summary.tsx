@@ -55,13 +55,13 @@ export default function OrderSummary() {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Subtotal</span>
             <span>
-              <Price value={order.subTotalWithTax} currencyCode={order.currencyCode} />
+              <Price value={order.subTotalWithTax || order.totalWithTax} currencyCode={order.currencyCode} />
             </span>
           </div>
 
           {order.discounts && order.discounts.length > 0 && (
             <>
-              {order.discounts.map((discount, index: number) => (
+              {order.discounts.map((discount: { description: string; amountWithTax: number }, index: number) => (
                 <div key={index} className="flex justify-between text-sm text-green-600">
                   <span>{discount.description}</span>
                   <span>

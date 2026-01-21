@@ -1,6 +1,5 @@
 import {cacheLife, cacheTag} from 'next/cache';
-import {query} from './api';
-import {GetActiveChannelQuery, GetAvailableCountriesQuery, GetTopCollectionsQuery} from './queries';
+import { getActiveChannel, getAvailableCountries, getTopCollections as getTopCollectionsREST } from './rest-adapter';
 
 /**
  * Get the active channel with caching enabled.
@@ -10,8 +9,8 @@ export async function getActiveChannelCached() {
     'use cache';
     cacheLife('hours');
 
-    const result = await query(GetActiveChannelQuery);
-    return result.data.activeChannel;
+    const result = await getActiveChannel();
+    return result.data;
 }
 
 /**
@@ -23,8 +22,8 @@ export async function getAvailableCountriesCached() {
     cacheLife('max');
     cacheTag('countries');
 
-    const result = await query(GetAvailableCountriesQuery);
-    return result.data.availableCountries || [];
+    const result = await getAvailableCountries();
+    return result.data;
 }
 
 /**
@@ -36,6 +35,6 @@ export async function getTopCollections() {
     cacheLife('days');
     cacheTag('collections');
 
-    const result = await query(GetTopCollectionsQuery);
-    return result.data.collections.items;
+    const result = await getTopCollectionsREST();
+    return result.data;
 }

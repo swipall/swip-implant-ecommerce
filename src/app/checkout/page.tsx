@@ -1,17 +1,12 @@
 import type {Metadata} from 'next';
-import {query} from '@/lib/vendure/api';
-import {
-    GetActiveOrderForCheckoutQuery,
-    GetCustomerAddressesQuery,
-    GetEligiblePaymentMethodsQuery,
-    GetEligibleShippingMethodsQuery,
-} from '@/lib/vendure/queries';
+import { getActiveOrder, getEligibleShippingMethods, getEligiblePaymentMethods } from '@/lib/swipall/rest-adapter';
 import {redirect} from 'next/navigation';
 import CheckoutFlow from './checkout-flow';
 import {CheckoutProvider} from './checkout-provider';
+import type { CheckoutOrder } from './types';
 import {noIndexRobots} from '@/lib/metadata';
-import {getActiveCustomer} from '@/lib/vendure/actions';
-import {getAvailableCountriesCached} from '@/lib/vendure/cached';
+import {getActiveCustomer} from '@/lib/swipall/actions';
+import { getAvailableCountriesCached } from '@/lib/swipall/cached';
 
 export const metadata: Metadata = {
     title: 'Checkout',
@@ -23,18 +18,14 @@ export default async function CheckoutPage(_props: PageProps<'/checkout'>) {
     const customer = await getActiveCustomer();
     const isGuest = !customer;
 
-    const [orderRes, addressesRes, countries, shippingMethodsRes, paymentMethodsRes] =
-        await Promise.all([
-            query(GetActiveOrderForCheckoutQuery, {}, {useAuthToken: true}),
-            isGuest
-                ? Promise.resolve({ data: { activeCustomer: null } })
-                : query(GetCustomerAddressesQuery, {}, {useAuthToken: true}),
-            getAvailableCountriesCached(),
-            query(GetEligibleShippingMethodsQuery, {}, {useAuthToken: true}),
-            query(GetEligiblePaymentMethodsQuery, {}, {useAuthToken: true}),
-        ]);
+    const [orderRes, countries, shippingMethodsRes, paymentMethodsRes] = await Promise.all([
+        getActiveOrder({ useAuthToken: true }),
+        getAvailableCountriesCached(),
+        getEligibleShippingMethods({ useAuthToken: true }),
+        getEligiblePaymentMethods({ useAuthToken: true }),
+    ]);
 
-    const activeOrder = orderRes.data.activeOrder;
+    const activeOrder = orderRes.data;
 
     if (!activeOrder || activeOrder.lines.length === 0) {
         return redirect('/cart');
@@ -44,10 +35,9 @@ export default async function CheckoutPage(_props: PageProps<'/checkout'>) {
         return redirect(`/order-confirmation/${activeOrder.code}`);
     }
 
-    const addresses = addressesRes.data.activeCustomer?.addresses || [];
-    const shippingMethods = shippingMethodsRes.data.eligibleShippingMethods || [];
-    const paymentMethods =
-        paymentMethodsRes.data.eligiblePaymentMethods?.filter((m) => m.isEligible) || [];
+    const addresses = customer?.addresses || [];
+    const shippingMethods = shippingMethodsRes.data || [];
+    const paymentMethods = (paymentMethodsRes.data || []).filter(m => m.isEligible);
 
     return (
         <div className="container mx-auto px-4 py-8">

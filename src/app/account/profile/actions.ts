@@ -1,11 +1,10 @@
 'use server';
 
-import {mutate} from '@/lib/vendure/api';
 import {
-    UpdateCustomerPasswordMutation,
-    UpdateCustomerMutation,
-    RequestUpdateCustomerEmailAddressMutation,
-} from '@/lib/vendure/mutations';
+    updateCustomerPassword,
+    updateCustomer as apiUpdateCustomer,
+    requestUpdateCustomerEmailAddress,
+} from '@/lib/swipall/rest-adapter';
 import {revalidatePath} from 'next/cache';
 
 export async function updatePasswordAction(prevState: { error?: string; success?: boolean } | undefined, formData: FormData) {
@@ -26,20 +25,11 @@ export async function updatePasswordAction(prevState: { error?: string; success?
     }
 
     try {
-        const result = await mutate(UpdateCustomerPasswordMutation, {
-            currentPassword,
-            newPassword,
-        }, {useAuthToken: true});
-
-        const updateResult = result.data.updateCustomerPassword;
-
-        if (updateResult.__typename !== 'Success') {
-            return {error: updateResult.message};
-        }
-
+        await updateCustomerPassword(currentPassword, newPassword, {useAuthToken: true});
         return {success: true};
     } catch (error: unknown) {
-        return {error: 'An unexpected error occurred. Please try again.'};
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+        return {error: message};
     }
 }
 
@@ -52,23 +42,16 @@ export async function updateCustomerAction(prevState: { error?: string; success?
     }
 
     try {
-        const result = await mutate(UpdateCustomerMutation, {
-            input: {
-                firstName,
-                lastName,
-            },
+        await apiUpdateCustomer({
+            firstName,
+            lastName,
         }, {useAuthToken: true});
-
-        const updateResult = result.data.updateCustomer;
-
-        if (!updateResult || !updateResult.id) {
-            return {error: 'Failed to update customer information'};
-        }
 
         revalidatePath('/account/profile');
         return {success: true};
     } catch (error: unknown) {
-        return {error: 'An unexpected error occurred. Please try again.'};
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+        return {error: message};
     }
 }
 
@@ -87,19 +70,10 @@ export async function requestEmailUpdateAction(prevState: { error?: string; succ
     }
 
     try {
-        const result = await mutate(RequestUpdateCustomerEmailAddressMutation, {
-            password,
-            newEmailAddress,
-        }, {useAuthToken: true});
-
-        const updateResult = result.data.requestUpdateCustomerEmailAddress;
-
-        if (updateResult.__typename !== 'Success') {
-            return {error: updateResult.message};
-        }
-
+        await requestUpdateCustomerEmailAddress(password, newEmailAddress, {useAuthToken: true});
         return {success: true};
     } catch (error: unknown) {
-        return {error: 'An unexpected error occurred. Please try again.'};
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+        return {error: message};
     }
 }
