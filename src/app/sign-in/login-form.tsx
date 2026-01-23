@@ -18,6 +18,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import Link from 'next/link';
+import { setAuthUser } from '@/lib/auth-client';
 
 const loginSchema = z.object({
     email: z.email('Por favor ingresa un correo electrónico válido'),

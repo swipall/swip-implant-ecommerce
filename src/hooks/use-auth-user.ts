@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { CurrentUser } from '@/lib/swipall/rest-adapter';
-import { getAuthUser, removeAuthUser } from '@/lib/auth-client';
+import { getAuthUser, removeAuthUser, AUTH_USER_CHANGED_EVENT } from '@/lib/auth-client';
 
 /**
  * Hook to get the authenticated user from localStorage
@@ -17,6 +17,18 @@ export function useAuthUser() {
         const storedUser = getAuthUser();
         setUser(storedUser);
         setIsLoading(false);
+
+        // Listen for auth user changes
+        const handleAuthChange = (event: Event) => {
+            const customEvent = event as CustomEvent<CurrentUser | null>;
+            setUser(customEvent.detail);
+        };
+
+        window.addEventListener(AUTH_USER_CHANGED_EVENT, handleAuthChange);
+
+        return () => {
+            window.removeEventListener(AUTH_USER_CHANGED_EVENT, handleAuthChange);
+        };
     }, []);
 
     const logout = () => {

@@ -3,6 +3,7 @@
 import { CurrentUser } from '@/lib/swipall/rest-adapter';
 
 const AUTH_USER_STORAGE = 'swipall-auth-user';
+const AUTH_USER_EVENT = 'auth-user-changed';
 
 /**
  * Store authenticated user in localStorage
@@ -11,6 +12,8 @@ const AUTH_USER_STORAGE = 'swipall-auth-user';
 export function setAuthUser(user: CurrentUser) {
     if (typeof window !== 'undefined') {
         localStorage.setItem(AUTH_USER_STORAGE, JSON.stringify(user));
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent(AUTH_USER_EVENT, { detail: user }));
     }
 }
 
@@ -40,5 +43,12 @@ export function getAuthUser(): CurrentUser | null {
 export function removeAuthUser() {
     if (typeof window !== 'undefined') {
         localStorage.removeItem(AUTH_USER_STORAGE);
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent(AUTH_USER_EVENT, { detail: null }));
     }
 }
+
+/**
+ * Event name for auth user changes
+ */
+export const AUTH_USER_CHANGED_EVENT = AUTH_USER_EVENT;
