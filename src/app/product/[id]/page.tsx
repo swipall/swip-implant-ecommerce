@@ -25,10 +25,8 @@ async function getProductData(id: string) {
 
     try {
         const result = await getProduct(id);
-        console.log(`[getProductData] Result status:`, result);
         return result;
     } catch (error) {
-        console.error(`[getProductData] Error fetching product:`, error);
         throw error;
     }
 }
@@ -39,7 +37,7 @@ export async function generateMetadata({
     const { id: encodedId } = await params;
     const id = decodeURIComponent(encodedId);
     const result = await getProductData(id);
-    const product = result.data;
+    const product = result;
     if (!product) {
         return {
             title: 'Product Not Found',
@@ -47,13 +45,13 @@ export async function generateMetadata({
     }
 
     const description = truncateDescription((product as any).description || product.name);
-    const ogImage = (product as any).featuredAsset?.preview;
+    const ogImage = product.featured_image;
 
     return {
         title: product.name,
         description: description || `Shop ${product.name} at ${SITE_NAME}`,
         alternates: {
-            canonical: buildCanonicalUrl(`/product/${product.slug}`),
+            canonical: buildCanonicalUrl(`/product/${product.id}`),
         },
         openGraph: {
             title: product.name,
@@ -71,19 +69,19 @@ export async function generateMetadata({
     };
 }
 
-export default async function ProductDetailPage({params, searchParams}: PageProps<'/product/[id]'>) {
+export default async function ProductDetailPage({ params, searchParams }: PageProps<'/product/[id]'>) {
     const { id: encodedId } = await params;
+     const searchParamsResolved = await searchParams;
     const id = decodeURIComponent(encodedId);
     const result = await getProductData(id);
-
-    const product = result.data;
+    const product = result;
 
     if (!product) {
         notFound();
     }
 
     // Get the primary collection (prefer deepest nested / most specific)
-    const primaryCollection = product.collections?.[0];
+    // const primaryCollection = product.taxonomy?.[0]; //TODO: Supoort related products
 
     return (
         <>
@@ -91,7 +89,7 @@ export default async function ProductDetailPage({params, searchParams}: PageProp
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
                     {/* Left Column: Image Carousel */}
                     <div className="lg:sticky lg:top-20 lg:self-start">
-                        <ProductImageCarousel images={product.featuredAsset ? [product.featuredAsset] : []} />
+                        <ProductImageCarousel images={product.featured_image ? [product.featured_image] : []} />
                     </div>
 
                     {/* Right Column: Product Info */}
@@ -100,6 +98,7 @@ export default async function ProductDetailPage({params, searchParams}: PageProp
                         {product.description && (
                             <p className="text-muted-foreground mb-6">{product.description}</p>
                         )}
+                        <ProductInfo product={product} searchParams={searchParamsResolved} />
                     </div>
                 </div>
             </div>
@@ -173,12 +172,12 @@ export default async function ProductDetailPage({params, searchParams}: PageProp
                 </div>
             </section>
 
-            {primaryCollection && (
+            {/* {primaryCollection && (
                 <RelatedProducts
                     collectionSlug={primaryCollection.slug}
                     currentProductId={product.id}
                 />
-            )}
+            )} */}
         </>
     );
 }

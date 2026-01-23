@@ -1,49 +1,18 @@
 'use client';
 
-import {useState, useMemo, useTransition} from 'react';
+import {useState, useMemo, useTransition, useEffect} from 'react';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
 import {Button} from '@/components/ui/button';
 import {Label} from '@/components/ui/label';
 import {RadioGroup, RadioGroupItem} from '@/components/ui/radio-group';
 import {ShoppingCart, CheckCircle2} from 'lucide-react';
-import {addToCart} from '@/app/product/[id]/actions';
+import {addToCart, getGroupVariants as loadGroupVariants} from '@/app/product/[id]/actions';
 import {toast} from 'sonner';
 import {Price} from '@/components/commerce/price';
+import { InterfaceInventoryItem, ProductVariant } from '@/lib/swipall/types';
 
 interface ProductInfoProps {
-    product: {
-        id: string;
-        name: string;
-        description: string;
-        variants: Array<{
-            id: string;
-            name: string;
-            sku: string;
-            priceWithTax: number;
-            stockLevel: string;
-            options: Array<{
-                id: string;
-                code: string;
-                name: string;
-                groupId: string;
-                group: {
-                    id: string;
-                    code: string;
-                    name: string;
-                };
-            }>;
-        }>;
-        optionGroups: Array<{
-            id: string;
-            code: string;
-            name: string;
-            options: Array<{
-                id: string;
-                code: string;
-                name: string;
-            }>;
-        }>;
-    };
+    product: InterfaceInventoryItem;
     searchParams: { [key: string]: string | string[] | undefined };
 }
 
@@ -54,97 +23,85 @@ export function ProductInfo({product, searchParams}: ProductInfoProps) {
     const [isPending, startTransition] = useTransition();
     const [isAdded, setIsAdded] = useState(false);
 
-    // Initialize selected options from URL
-    const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
-        const initialOptions: Record<string, string> = {};
+    // Variants state (only for group kind)
+    const [variants, setVariants] = useState<ProductVariant[]>([]);
+    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
-        // Load from URL search params
-        product.optionGroups.forEach((group) => {
-            const paramValue = searchParams[group.code];
-            if (typeof paramValue === 'string') {
-                // Find the option by code
-                const option = group.options.find((opt) => opt.code === paramValue);
-                if (option) {
-                    initialOptions[group.id] = option.id;
+    useEffect(() => {
+        console.log(product);
+        
+        // Only load variants for 'group' kind
+        if (product.kind === 'group') {
+            startTransition(async () => {
+                const res = await loadGroupVariants(product.id);
+                if (res?.success) {
+                    setVariants(res.variants || []);
+                    setSelectedVariantId(res.variants?.[0]?.id || null);
+                } else {
+                    toast.error('Error', { description: res?.error || 'Error al cargar las variantes' });
                 }
-            }
-        });
+            });
+        } else {
+            // For 'product' and 'compound' kinds, clear variants
+            setVariants([]);
+            setSelectedVariantId(null);
+        }
+    }, [product.id, product.kind]);
 
-        return initialOptions;
-    });
-
-    // Find the matching variant based on selected options
+    // Selected variant by id
     const selectedVariant = useMemo(() => {
-        if (product.variants.length === 1) {
-            return product.variants[0];
+        if (selectedVariantId) {
+            return variants.find(v => v.id === selectedVariantId) || null;
         }
+        return variants.length === 1 ? variants[0] : null;
+    }, [variants, selectedVariantId]);
 
-        // If not all option groups have a selection, return null
-        if (Object.keys(selectedOptions).length !== product.optionGroups.length) {
-            return null;
-        }
-
-        // Find variant that matches all selected options
-        return product.variants.find((variant) => {
-            const variantOptionIds = variant.options.map((opt) => opt.id);
-            const selectedOptionIds = Object.values(selectedOptions);
-            return selectedOptionIds.every((optId) => variantOptionIds.includes(optId));
-        });
-    }, [selectedOptions, product.variants, product.optionGroups]);
-
-    const handleOptionChange = (groupId: string, optionId: string) => {
-        setSelectedOptions((prev) => ({
-            ...prev,
-            [groupId]: optionId,
-        }));
-
-        // Find the option group and option to get their codes
-        const group = product.optionGroups.find((g) => g.id === groupId);
-        const option = group?.options.find((opt) => opt.id === optionId);
-
-        if (group && option) {
-            // Update URL with option code
-            const params = new URLSearchParams(currentSearchParams);
-            params.set(group.code, option.code);
-            router.push(`${pathname}?${params.toString()}`, {scroll: false});
-        }
+    const handleVariantChange = (variantId: string) => {
+        setSelectedVariantId(variantId);
     };
 
     const handleAddToCart = async () => {
-        if (!selectedVariant) return;
+        // For 'group' kind, require a selected variant
+        if (product.kind === 'group' && !selectedVariant) return;
+        
+        // For 'group' kind use the variant ID, otherwise use the product ID
+        const itemId = product.kind === 'group' ? selectedVariant?.id : product.id;
+        if (!itemId) return;
 
         startTransition(async () => {
-            const result = await addToCart(selectedVariant.id, 1);
+            const result = await addToCart(itemId, 1);
 
             if (result.success) {
                 setIsAdded(true);
-                toast.success('Added to cart', {
-                    description: `${product.name} has been added to your cart`,
+                toast.success('Agregado al carrito', {
+                    description: `${product.name} ha sido agregado a tu carrito`,
                 });
 
                 // Reset the added state after 2 seconds
                 setTimeout(() => setIsAdded(false), 2000);
             } else {
                 toast.error('Error', {
-                    description: result.error || 'Failed to add item to cart',
+                    description: result.error || 'Ocurrió un error al agregar al carrito',
                 });
             }
         });
     };
 
-    const isInStock = selectedVariant && selectedVariant.stockLevel !== 'OUT_OF_STOCK';
-    const canAddToCart = selectedVariant && isInStock;
+    const isInStock = product.kind === 'group' 
+        ? (selectedVariant?.available.quantity ?? 0) > 0 
+        : (product.available.quantity ?? 0) > 0;
+    const canAddToCart = product.kind === 'group' 
+        ? !!selectedVariant && isInStock 
+        : isInStock;
 
     return (
         <div className="space-y-6">
             {/* Product Title */}
             <div>
                 <h1 className="text-3xl font-bold">{product.name}</h1>
-                {selectedVariant && (
-                    <p className="text-2xl font-bold mt-2">
-                        <Price value={selectedVariant.priceWithTax}/>
-                    </p>
-                )}
+                <p className="text-2xl font-bold mt-2">
+                    <Price value={product.kind === 'group' ? selectedVariant?.web_price : product.web_price}/>
+                </p>
             </div>
 
             {/* Product Description */}
@@ -152,51 +109,45 @@ export function ProductInfo({product, searchParams}: ProductInfoProps) {
                 <div dangerouslySetInnerHTML={{__html: product.description}}/>
             </div>
 
-            {/* Option Groups */}
-            {product.optionGroups.length > 0 && (
+            {/* Variants Selection - only for group kind */}
+            {product.kind === 'group' && variants.length > 0 && (
                 <div className="space-y-4">
-                    {product.optionGroups.map((group) => (
-                        <div key={group.id} className="space-y-3">
-                            <Label className="text-base font-semibold">
-                                {group.name}
-                            </Label>
-                            <RadioGroup
-                                value={selectedOptions[group.id] || ''}
-                                onValueChange={(value) => handleOptionChange(group.id, value)}
-                            >
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                    {group.options.map((option) => (
-                                        <div key={option.id}>
-                                            <RadioGroupItem
-                                                value={option.id}
-                                                id={option.id}
-                                                className="peer sr-only"
-                                            />
-                                            <Label
-                                                htmlFor={option.id}
-                                                className="flex items-center justify-center rounded-md border-2 border-muted bg-popover px-4 py-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-colors"
-                                            >
-                                                {option.name}
-                                            </Label>
-                                        </div>
-                                    ))}
+                    <Label className="text-base font-semibold">
+                        Variantes
+                    </Label>
+                    <RadioGroup
+                        value={selectedVariantId || ''}
+                        onValueChange={(value) => handleVariantChange(value)}
+                    >
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {variants.map((variant) => (
+                                <div key={variant.id}>
+                                    <RadioGroupItem
+                                        value={variant.id}
+                                        id={variant.id}
+                                        className="peer sr-only"
+                                    />
+                                    <Label
+                                        htmlFor={variant.id}
+                                        className="flex items-center justify-center rounded-md border-2 border-muted bg-popover px-4 py-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-colors"
+                                    >
+                                        {variant.name}
+                                    </Label>
                                 </div>
-                            </RadioGroup>
+                            ))}
                         </div>
-                    ))}
+                    </RadioGroup>
                 </div>
             )}
 
             {/* Stock Status */}
-            {selectedVariant && (
-                <div className="text-sm">
-                    {isInStock ? (
-                        <span className="text-green-600 font-medium">In Stock</span>
-                    ) : (
-                        <span className="text-destructive font-medium">Out of Stock</span>
-                    )}
-                </div>
-            )}
+            <div className="text-sm">
+                {isInStock ? (
+                    <span className="text-green-600 font-medium">Con existencias</span>
+                ) : (
+                    <span className="text-destructive font-medium">Agotado</span>
+                )}
+            </div>
 
             {/* Add to Cart Button */}
             <div className="pt-4">
@@ -209,28 +160,36 @@ export function ProductInfo({product, searchParams}: ProductInfoProps) {
                     {isAdded ? (
                         <>
                             <CheckCircle2 className="mr-2 h-5 w-5"/>
-                            Added to Cart
+                            Se agregó al carrito
                         </>
                     ) : (
                         <>
                             <ShoppingCart className="mr-2 h-5 w-5"/>
                             {isPending
-                                ? 'Adding...'
-                                : !selectedVariant && product.optionGroups.length > 0
-                                    ? 'Select Options'
+                                ? 'Agregando...'
+                                : !selectedVariant && variants.length > 0
+                                    ? 'Seleccionar Variante'
                                     : !isInStock
-                                        ? 'Out of Stock'
-                                        : 'Add to Cart'}
+                                        ? 'Agotado'
+                                        : 'Agregar al Carrito'}
                         </>
                     )}
                 </Button>
             </div>
 
             {/* SKU */}
-            {selectedVariant && (
-                <div className="text-xs text-muted-foreground">
-                    SKU: {selectedVariant.sku}
-                </div>
+            {product.kind === 'group' ? (
+                selectedVariant && (
+                    <div className="text-xs text-muted-foreground">
+                        SKU: {selectedVariant.sku}
+                    </div>
+                )
+            ) : (
+                product.sku && (
+                    <div className="text-xs text-muted-foreground">
+                        SKU: {product.sku}
+                    </div>
+                )
             )}
         </div>
     );

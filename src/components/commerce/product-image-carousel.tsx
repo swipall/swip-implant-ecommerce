@@ -6,10 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ProductImageCarouselProps {
-    images: Array<{
-        id: string;
-        preview: string;
-    }>;
+    images: Array<string>;
 }
 
 export function ProductImageCarousel({ images }: ProductImageCarouselProps) {
@@ -36,7 +33,7 @@ export function ProductImageCarousel({ images }: ProductImageCarouselProps) {
             {/* Main Image */}
             <div className="relative aspect-square bg-muted rounded-lg overflow-hidden group">
                 <Image
-                    src={images[currentIndex].preview}
+                    src={images[currentIndex]}
                     alt={`Product image ${currentIndex + 1}`}
                     fill
                     className="object-cover"
@@ -79,7 +76,7 @@ export function ProductImageCarousel({ images }: ProductImageCarouselProps) {
                 <div className="grid grid-cols-4 gap-2">
                     {images.map((image, index) => (
                         <button
-                            key={image.id}
+                            key={index}
                             onClick={() => setCurrentIndex(index)}
                             className={`aspect-square relative rounded-lg overflow-hidden border-2 transition-colors ${
                                 index === currentIndex
@@ -88,7 +85,7 @@ export function ProductImageCarousel({ images }: ProductImageCarouselProps) {
                             }`}
                         >
                             <Image
-                                src={image.preview}
+                                src={image}
                                 alt={`Thumbnail ${index + 1}`}
                                 fill
                                 className="object-cover"

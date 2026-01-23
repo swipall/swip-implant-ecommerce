@@ -1,7 +1,7 @@
 import { ProductCarousel } from "@/components/commerce/product-carousel";
 import { cacheLife, cacheTag } from "next/cache";
 import { searchProducts } from '@/lib/swipall/rest-adapter';
-import type { InterfaceInventoryItem } from '@/lib/swipall/rest-adapter';
+import { InterfaceInventoryItem } from "@/lib/swipall/types/types";
 
 interface RelatedProductsProps {
     collectionSlug: string;

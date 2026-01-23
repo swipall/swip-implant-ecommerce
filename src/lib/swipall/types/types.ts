@@ -1,0 +1,343 @@
+/**
+ * Type definitions for Swipall REST API
+ * 
+ * This file contains all TypeScript interfaces and types used
+ * throughout the Swipall REST adapter, organized by feature.
+ */
+
+// ============================================================================
+// Authentication Types
+// ============================================================================
+
+export interface LoginInput {
+    email: string;
+    password: string;
+}
+
+export interface UserInterface {
+    first_name: string;
+    last_name: string;
+    pk: string;
+}
+
+export interface LoginResponse {
+    user: UserInterface;
+    access_token: string;
+    refresh_token: string;
+}
+
+// ============================================================================
+// Customer/User Types
+// ============================================================================
+
+export interface CurrentUser {
+    id?: string;
+    pk?: string;
+    identifier?: string;
+    firstName?: string;
+    first_name?: string;
+    lastName?: string;
+    last_name?: string;
+    emailAddress?: string;
+    email?: string;
+    phoneNumber?: string;
+    phone?: string;
+    addresses?: Address[];
+}
+
+export interface UpdateCustomerInput {
+    firstName?: string;
+    lastName?: string;
+}
+
+// ============================================================================
+// Address Types
+// ============================================================================
+
+export interface Address {
+    id: string;
+    fullName: string;
+    company?: string;
+    streetLine1: string;
+    streetLine2?: string;
+    city: string;
+    province?: string;
+    postalCode: string;
+    country: {
+        id: string;
+        code: string;
+        name: string;
+    };
+    phoneNumber?: string;
+    defaultShippingAddress?: boolean;
+    defaultBillingAddress?: boolean;
+}
+
+export interface CreateAddressInput {
+    fullName: string;
+    company?: string;
+    streetLine1: string;
+    streetLine2?: string;
+    city: string;
+    province?: string;
+    postalCode: string;
+    countryCode: string;
+    phoneNumber?: string;
+    defaultShippingAddress?: boolean;
+    defaultBillingAddress?: boolean;
+}
+
+export interface AddressInterface {
+    id: string;
+    address: string;
+    suburb: string;
+    postal_code: string;
+    city: string;
+    state: string;
+    country: string;
+    receiver?: string;
+    references?: string;
+    mobile?: string;
+}
+
+// ============================================================================
+// Product Types
+// ============================================================================
+
+export interface Product {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    featuredAsset?: Asset;
+    variants: ProductVariant[];
+    collections?: Collection[];
+}
+
+export interface InterfaceInventoryItem {
+    attribute_combinations: any[];
+    available?: InventoryAvailable;
+    barcode: string | null;
+    featured_image: string | null;
+    id: string;
+    kind: 'group' | 'product' | 'compound';
+    name: string;
+    pictures: InventoryPicture[] | null;
+    sku: string;
+    slug: string;
+    taxonomy: TaxonomyInterface[];
+    web_price: string;
+    extra_materials?: any[];
+    description?: string;
+    app_price?: string;
+    collections?: Collection[];
+    featuredAsset?: Asset;
+    variants?: ProductVariant[];
+}
+
+export interface ProductVariant {
+    id: string;
+    name: string;
+    sku: string;
+    price: number;
+    priceWithTax: number;
+    stock: number;
+}
+
+export interface Asset {
+    id: string;
+    name: string;
+    preview: string;
+}
+
+export interface Collection {
+    id: string;
+    name: string;
+    slug: string;
+}
+
+export interface InventoryAvailable {
+    id: string;
+    quantity: number;
+}
+
+export interface InventoryPicture {
+    id: string;
+    url: string;
+}
+
+// ============================================================================
+// Catalog & Taxonomy Types
+// ============================================================================
+
+export interface CatalogsParams {
+    parent__slug?: string;
+}
+
+export interface CatalogInterface {
+    code: string | null;
+    id: string;
+    kind: string;
+    name: string;
+    ordering: number;
+    parent: CatalogInterface | null;
+    settings: CatalogSettings | null;
+    slug: string;
+}
+
+interface CatalogSettings {
+    url: string;
+}
+
+export interface TaxonomyInterface {
+    id: string;
+    name: string;
+    slug: string;
+    value: string | null;
+    thumbnail?: string;
+    icon?: string;
+    color?: string;
+    imagen?: string;
+}
+
+// ============================================================================
+// Search Types
+// ============================================================================
+
+export interface SearchInput {
+    offset?: number;
+    limit?: number;
+    search?: string;
+    ordering?: string;
+}
+
+// ============================================================================
+// API Response Types
+// ============================================================================
+
+export interface InterfaceApiListResponse<T> {
+    results: T[];
+    count: number;
+    next: string | null;
+    previous: string | null;
+}
+
+export interface InterfaceApiDetailResponse<T> {
+    data?: T;
+    [key: string]: unknown;
+}
+
+// ============================================================================
+// Cart/Order Types
+// ============================================================================
+
+export interface OrderLine {
+    id: string;
+    productVariant: {
+        id: string;
+        name: string;
+        sku: string;
+        product: {
+            id: string;
+            name: string;
+            slug: string;
+            featuredAsset?: Asset;
+        };
+    };
+    unitPriceWithTax: number;
+    quantity: number;
+    linePriceWithTax: number;
+}
+
+export interface ShopCart {
+    count_items: {
+        count: number | null;
+    };
+    created_at: string;
+    discount_total: string;
+    expired_at: string | null;
+    grand_total: string;
+    id: string;
+    ieps_total: string;
+    isr_total: string;
+    kind: string;
+    shipment_address: string | AddressInterface | null;
+    source: number;
+    sub_total: string;
+    tax_total: string;
+    updated_at: string;
+    for_pickup: boolean;
+    for_delivery: boolean;
+}
+
+export interface ShopCartItemBase {
+    id: string;
+    allow_serial_numbers: boolean;
+    attribute_combinations: any[];
+    barcode: string;
+    featured_image: string | null;
+    name: string;
+    sku: string;
+}
+
+export interface ShopCartItem {
+    base: string;
+    extra_fields: any[];
+    extra_materials: any[];
+    id: string;
+    item: ShopCartItemBase;
+    kind: string;
+    properties: any[];
+    quantity: number;
+    serial_number: string | null;
+    sub_total: string;
+    total: string;
+}
+
+export interface Order extends ShopCart {
+    lines: ShopCartItem[];
+}
+
+export interface AddToCartInput {
+    variantId: string;
+    quantity: number;
+}
+
+// ============================================================================
+// Checkout Types
+// ============================================================================
+
+export interface ShippingMethod {
+    id: string;
+    name: string;
+    code: string;
+    description?: string;
+    priceWithTax: number;
+}
+
+export interface PaymentMethod {
+    id: string;
+    code: string;
+    name: string;
+    description?: string;
+    isEligible: boolean;
+}
+
+export interface PaymentInput {
+    method: string;
+    amount?: number;
+    metadata?: Record<string, any>;
+}
+
+// ============================================================================
+// Registration & Password Reset Types
+// ============================================================================
+
+export interface RegisterInput {
+    first_name: string;
+    last_name: string;
+    email: string;
+    password1: string;
+    password2: string;
+    username: string;
+}
