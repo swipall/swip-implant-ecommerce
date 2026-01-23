@@ -15,8 +15,8 @@
  * etc.
  */
 
-import { post, get, put, patch, remove } from './api';
-import { getCartId, setCartId, clearCartId } from '@/lib/cart';
+import { clearCartId, getCartId, setCartId } from '@/lib/cart';
+import { get, patch, post, remove } from './api';
 
 // ============================================================================
 // Authentication Endpoints
