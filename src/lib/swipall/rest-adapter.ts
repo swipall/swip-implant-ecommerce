@@ -88,7 +88,6 @@ export async function setDefaultBillingAddress(id: string, options?: { useAuthTo
 
 export async function getProduct(id: string): Promise<InterfaceInventoryItem> {
     const endpoint = `/api/v1/shop/item/${id}`;
-    console.log(`[getProduct] Fetching from endpoint: ${endpoint}`);
     return get<InterfaceInventoryItem>(endpoint);
 }
 
@@ -177,6 +176,11 @@ export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?
     }
 }
 
+export const existsItemInCart = async (cartId: string, itemId: string): Promise<InterfaceApiListResponse<ShopCartItem>> => {
+    const response = await get<InterfaceApiListResponse<ShopCartItem>>(`/api/v1/shop/cart/${cartId}/items`, { item__id: itemId });
+    return response;
+}
+
 export const createShopCart = async (): Promise<InterfaceApiDetailResponse<ShopCart>> => {
     return post<InterfaceApiDetailResponse<ShopCart>>('/api/v1/shop/cart/', {});
 }
@@ -192,6 +196,21 @@ export async function addToCart(input: AddToCartInput, options?: { useAuthToken?
     }
 
     return result;
+}
+
+export interface AddProductToCartBody {
+    item: string;
+    quantity: number;
+    extra_materials?: { material_id: string; name: string }[];
+    price?: number;
+}
+
+export const addProductToCart = async (cartId: string, body: AddProductToCartBody): Promise<InterfaceApiDetailResponse<ShopCartItem>> => {
+    return post<InterfaceApiDetailResponse<ShopCartItem>>(`/api/v1/shop/cart/${cartId}/items`, body);
+}
+
+export const updateProductInCart = async (itemId: string, body: { quantity: number }): Promise<InterfaceApiDetailResponse<ShopCartItem>> => {
+    return patch<InterfaceApiDetailResponse<ShopCartItem>>(`/api/v1/shop/cart/item/set/${itemId}/`, body);
 }
 
 export async function removeFromCart(lineId: string, options?: { useAuthToken?: boolean }): Promise<InterfaceApiDetailResponse<Order>> {

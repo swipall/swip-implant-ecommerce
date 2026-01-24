@@ -303,6 +303,12 @@ export interface AddToCartInput {
     quantity: number;
 }
 
+export interface AddItemToCartParams {
+    quantity: number;
+    extra_materials?: any[];
+    price: number;
+}
+
 // ============================================================================
 // Checkout Types
 // ============================================================================

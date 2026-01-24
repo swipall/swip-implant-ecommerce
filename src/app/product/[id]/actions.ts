@@ -4,9 +4,9 @@ import { addToCart as apiAddToCart } from '@/lib/swipall/rest-adapter';
 import { getGroupVariants as apiGetGroupVariants } from '@/lib/swipall/group-variants';
 import { updateTag } from 'next/cache';
 
-export async function addToCart(variantId: string, quantity: number = 1) {
+export async function addToCart(productId: string, quantity: number = 1) {
   try {
-    const result = await apiAddToCart({ variantId, quantity }, { useAuthToken: true });
+    const result = await apiAddToCart({ variantId: productId, quantity }, { useAuthToken: true });
 
     // Revalidate cart data across all pages
     updateTag('cart');
