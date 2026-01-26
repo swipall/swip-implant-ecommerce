@@ -159,6 +159,16 @@ export interface ProductVariant {
     available: InventoryAvailable;
 }
 
+export interface VariantOption {
+    label: string;
+    kind: string;
+    values: {
+        key: string;
+        name: string;
+        value: string;
+    }[]
+}
+
 export interface Asset {
     id: string;
     name: string;
@@ -179,6 +189,38 @@ export interface InventoryAvailable {
 export interface InventoryPicture {
     id: string;
     url: string;
+}
+
+
+export interface Inventory {
+    id: string;
+    warehouse__id: string;
+    warehouse__store__id: string;
+    warehouse__name: string;
+    warehouse__store__name: string;
+    quantity: number;
+    minimum: number;
+    maximum: number;
+}
+
+export interface Material {
+    id: string;
+    barcode: string;
+    sku: string;
+    name: string;
+    cost: string;
+    price: string;
+    inventories: Inventory[];
+}
+
+export interface MaterialItem {
+    id: string;
+    material: Material;
+    created_at: string;
+    updated_at: string;
+    request_selling: boolean;
+    quantity: number;
+    compound: string;
 }
 
 // ============================================================================

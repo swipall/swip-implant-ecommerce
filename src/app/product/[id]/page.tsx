@@ -1,22 +1,24 @@
-import type { Metadata } from 'next';
-import { getProduct } from '@/lib/swipall/rest-adapter';
 import { ProductImageCarousel } from '@/components/commerce/product-image-carousel';
-import { ProductInfo } from '@/components/commerce/product-info';
-import { RelatedProducts } from '@/components/commerce/related-products';
+import { ExtraMaterialsInterface, ProductInfo } from '@/components/commerce/product-info';
 import {
     Accordion,
     AccordionContent,
     AccordionItem,
     AccordionTrigger,
 } from '@/components/ui/accordion';
-import { notFound } from 'next/navigation';
-import { cacheLife, cacheTag } from 'next/cache';
 import {
-    SITE_NAME,
-    truncateDescription,
     buildCanonicalUrl,
     buildOgImages,
+    SITE_NAME,
+    truncateDescription,
 } from '@/lib/metadata';
+import { getProduct } from '@/lib/swipall/rest-adapter';
+import { InterfaceInventoryItem, Material, ProductKind } from '@/lib/swipall/types/types';
+import type { Metadata } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
+import { notFound } from 'next/navigation';
+import { getCompoundMaterials } from './actions';
+import { getAuthToken } from '@/lib/auth';
 
 async function getProductData(id: string) {
     'use cache';
@@ -31,12 +33,49 @@ async function getProductData(id: string) {
     }
 }
 
+
+const onGroupMaterialsByTaxonomy = (materials: Material[]): ExtraMaterialsInterface => {
+    const grouped: { [id: string]: { id: string; value: string; materials: Material[] } } = {};
+
+    (materials || []).forEach((item: any) => {
+        const tax = item.material.taxonomy?.[0];
+        const id = tax?.id || 'adicionales';
+        const value = tax?.value || 'Adicionales';
+
+        if (!grouped[id]) {
+            grouped[id] = { id, value, materials: [] };
+        }
+        grouped[id].materials.push(item.material);
+    });
+
+    const compoundMaterials = Object.values(grouped)
+        .sort((a, b) => a.value.localeCompare(b.value, 'es', { sensitivity: 'base' }))
+        .map(({ value, materials }) => ({
+            taxonomy: value,
+            materials
+        }));
+    return compoundMaterials;
+}
+
+async function fetchProductMaterials(product: InterfaceInventoryItem) {
+    if(!product){
+        return null;
+    }
+    const token = await getAuthToken();
+    if (product.kind === ProductKind.Compound && token) {
+        const compoundMaterials = await getCompoundMaterials(product.id, {});
+        product.extra_materials = onGroupMaterialsByTaxonomy(compoundMaterials.results);
+    }
+    return product;
+}
+
 export async function generateMetadata({
     params,
 }: PageProps<'/product/[id]'>): Promise<Metadata> {
     const { id: encodedId } = await params;
     const id = decodeURIComponent(encodedId);
     const result = await getProductData(id);
+
     const product = result;
     if (!product) {
         return {
@@ -71,16 +110,14 @@ export async function generateMetadata({
 
 export default async function ProductDetailPage({ params, searchParams }: PageProps<'/product/[id]'>) {
     const { id: encodedId } = await params;
-     const searchParamsResolved = await searchParams;
+    const searchParamsResolved = await searchParams;
     const id = decodeURIComponent(encodedId);
     const result = await getProductData(id);
-    const product = result;
+    const product = await fetchProductMaterials(result);
 
     if (!product) {
         notFound();
     }
-
-    // Get the primary collection (prefer deepest nested / most specific)
     // const primaryCollection = product.taxonomy?.[0]; //TODO: Supoort related products
 
     return (

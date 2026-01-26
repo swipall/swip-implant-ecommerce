@@ -3,40 +3,38 @@
 import { addToCart, getGroupVariant } from '@/app/product/[id]/actions';
 import { Price } from '@/components/commerce/price';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { InterfaceInventoryItem, ProductKind, ProductVariant } from '@/lib/swipall/types/types';
+import { InterfaceInventoryItem, Material, ProductKind, ProductVariant, VariantOption } from '@/lib/swipall/types/types';
 import { CheckCircle2, ShoppingCart } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import ProductVariants from './product-variants';
+import CompoundMaterialsSelector from './compound-materials-selector';
 
 interface ProductInfoProps {
     product: InterfaceInventoryItem;
     searchParams: { [key: string]: string | string[] | undefined };
 }
 
-interface VariantOption {
-    label: string;
-    key: string;
-    kind: string;
-    values: {
-        key: string;
-        name: string;
-        value: string;
-    }[]
-}
+export type ExtraMaterialsInterface = {
+    taxonomy: string;
+    materials: Material[]
+}[];
 
 export function ProductInfo({ product, searchParams }: ProductInfoProps) {
-    const pathname = usePathname();
     const router = useRouter();
     const currentSearchParams = useSearchParams();
+    const redirectTo = currentSearchParams?.get('redirectTo') as string | undefined;
     const [isPending, startTransition] = useTransition();
     const [isAdded, setIsAdded] = useState(false);
-
+    const [itemPrice, setItemPrice] = useState<number>(product.web_price ? parseFloat(product.web_price) : 0);
+    // States for selected variant and attributes when product is of 'group' kind
     const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
     const [variants, setVariants] = useState<VariantOption[]>([]);
-    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+    const [selectedSizeId, setSelectedSizeId] = useState<string>('');
+    const [selectedColorId, setSelectedColorId] = useState<string>('');
+    //States for selected materiales when product is of 'compound' kind
+    const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
 
     const generateVariantLabel = (kind: string) => {
         if (kind === 'size') return 'Tamaño';
@@ -45,21 +43,9 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
     }
 
     const formatVariants = (product: InterfaceInventoryItem) => {
-        let variantsArray: VariantOption[] = [
-            {
-                key: 'size',
-                label: 'Tamaño',
-                kind: 'size',
-                values: []
-            },
-            {
-                key: 'color',
-                label: 'Color',
-                kind: 'color',
-                values: []
-            }
-        ];
-        product.attribute_combinations.forEach((attr) => {
+        let variantsArray: VariantOption[] = [];
+
+        product.attribute_combinations?.forEach((attr) => {
             const existingVariant = variantsArray.find(v => v.kind === attr.kind);
             if (existingVariant) {
                 existingVariant.values.push({
@@ -70,7 +56,6 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
             } else {
                 variantsArray.push({
                     label: generateVariantLabel(attr.kind),
-                    key: attr.kind,
                     kind: attr.kind,
                     values: [{
                         key: attr.id,
@@ -84,46 +69,97 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
     }
 
     useEffect(() => {
-        // Only load variants for 'group' kind
         if (product.kind === ProductKind.Group) {
-            startTransition(async () => {
+            formatVariants(product);
+        }
+    }, [product]);
+
+    useEffect(() => {
+        const fetchVariant = async () => {
+            if (selectedColorId && selectedSizeId) {
                 try {
-                    formatVariants(product);
-
-                    fetchVariantBySizeAndColor(null, null)
+                    const params = {
+                        color: selectedColorId,
+                        size: selectedSizeId
+                    };
+                    const variant: ProductVariant = await getGroupVariant(product.id, params);
+                    setSelectedVariant(variant);
+                    setItemPrice(parseFloat(variant.web_price));
                 } catch (error) {
-                    toast.error('Error', { description: error instanceof Error ? error.message : 'Error al cargar las variantes' });
+                    console.error('Error fetching variant:', error);
+                    toast.error('Error', {
+                        description: 'No se pudo cargar la variante seleccionada',
+                    });
                 }
-            });
-        } else {
-            // For 'product' and 'compound' kinds, clear variants
-            setVariants([]);
-            setSelectedVariantId(null);
-        }
-    }, [product.id, product.kind]);
+            }
+        };
 
-    const fetchVariantBySizeAndColor = async (sizeId: string | null, colorId: string | null) => {
-        const params = {
-            ...colorId && { color: colorId },
-            ...sizeId && { size: sizeId }
+        fetchVariant();
+    }, [selectedColorId, selectedSizeId, product.id]);
+
+    const handleAttributeChange = (kind: string, valueId: string) => {
+        if (kind === 'size') {
+            setSelectedSizeId(valueId);
+        } else if (kind === 'color') {
+            setSelectedColorId(valueId);
         }
-        const res: ProductVariant = await getGroupVariant(product.id, params);
-        console.log(res);
-        setSelectedVariant(res);
+    };
+
+    const getSelectedMaterialFromTaxonomy = (taxonomyName: string): Material | undefined => {
+        return selectedMaterials.find(sm => {
+            return product.extra_materials?.some(group =>
+                group.taxonomy === taxonomyName &&
+                group.materials.some((m: any) => m.id === sm.id)
+            );
+        });
     }
 
+    const onRemoveMaterial = (materialId: string) => {
+        const materialToRemove = selectedMaterials.find(m => m.id === materialId);
+        if (materialToRemove) {
+            setItemPrice(prev => prev - (parseFloat(materialToRemove.price) || 0));
+        }
+        setSelectedMaterials(prev => prev.filter(m => m.id !== materialId));
+    }
 
-    const handleVariantChange = (variantId: string) => {
+    const onSelectMaterial = (material: Material) => {
+        const materialTaxonomy = product.extra_materials?.find(group =>
+            group.materials.some((m: any) => m.id === material.id)
+        )?.taxonomy;
 
-        setSelectedVariantId(variantId);
-    };
+        if (materialTaxonomy) {
+            const existingMaterial = getSelectedMaterialFromTaxonomy(materialTaxonomy);
+            if (existingMaterial) {
+                setItemPrice(prev => prev - (parseFloat(existingMaterial.price) || 0));
+                setSelectedMaterials(prev => prev.filter(m => m.id !== existingMaterial.id));
+            }
+        }
+
+        setItemPrice(prev => prev + (parseFloat(material.price) || 0));
+        const selectedMMaterials = [...selectedMaterials, material];
+
+        setSelectedMaterials(selectedMMaterials);
+    }
 
     const handleAddToCart = async () => {
         // For 'group' kind, require a selected variant
-        if (product.kind === 'group' && !selectedVariant) return;
-
-        // For 'group' kind use the variant ID, otherwise use the product ID
-        const itemId = product.kind === 'group' ? selectedVariant?.id : product.id;
+        if (product.kind === ProductKind.Group && !selectedVariant) {
+            toast.error('Error', {
+                description: 'Por favor selecciona color y tamaño',
+            });
+            return;
+        }
+        if(product.kind === ProductKind.Compound){
+            // if the user is not logged in, redirect to login page
+            if(!redirectTo){
+                toast.error('Error', {
+                    description: 'Por favor inicia sesión para agregar productos compuestos',
+                });
+                router.push(`/sign-in?redirectTo=/product/${product.id}`);
+                return;
+            }
+        }
+        const itemId = product.kind === ProductKind.Group ? selectedVariant?.id : product.id;
         if (!itemId) return;
 
         startTransition(async () => {
@@ -145,9 +181,15 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
         });
     };
 
+
     const isInStock = product.kind === ProductKind.Group
-        ? false
+        ? (selectedVariant?.available?.quantity ?? 0) > 0
         : (product.available?.quantity ?? 0) > 0;
+
+    const availableQuantity = product.kind === ProductKind.Group
+        ? selectedVariant?.available?.quantity ?? 0
+        : product.available?.quantity ?? 0;
+
     const canAddToCart = product.kind === ProductKind.Group
         ? !!selectedVariant && isInStock
         : isInStock;
@@ -157,7 +199,7 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
             {/* Product Title */}
             <div>
                 <p className="text-2xl font-bold mt-2">
-                    <Price value={product.kind === ProductKind.Group ? 0 : Number(product.web_price) || 0} />
+                    <Price value={itemPrice || 0} />
                 </p>
             </div>
 
@@ -168,48 +210,17 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
 
             {/* Variants Selection - only for group kind */}
             {product.kind === ProductKind.Group && variants.length > 0 && (
-                <div className="space-y-4">
-                    <Label className="text-base font-semibold">
-                        Variantes
-                    </Label>
-                    <RadioGroup
-                        value={selectedVariantId || ''}
-                        onValueChange={(value) => handleVariantChange(value)}
-                    >
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-center">
-                            {variants.map((variant) => (
-                                (
-                                    <div key={variant.key} className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        <p>{variant.label}</p>
-                                        {
-                                            variant.values.map((option) => (
-                                                <div key={option.key}>
-                                                    <RadioGroupItem
-                                                        value={option.key}
-                                                        id={option.key}
-                                                        className="peer sr-only"
-                                                    />
-                                                    <Label
-                                                        htmlFor={option.key}
-                                                        className="flex items-center justify-center rounded-md border-2 border-muted bg-popover px-4 py-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-colors"
-                                                    >
-                                                        {option.value}
-                                                    </Label>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                )
-                            ))}
-                        </div>
-                    </RadioGroup>
-                </div>
+                <ProductVariants variants={variants} handleAttributeChange={handleAttributeChange} selectedSizeId={selectedSizeId} selectedColorId={selectedColorId} />
+            )}
+
+            {product.kind === ProductKind.Compound && product.extra_materials && product.extra_materials.length > 0 && (
+                <CompoundMaterialsSelector extraMaterials={product.extra_materials} selectedMaterials={selectedMaterials} onSelectMaterial={onSelectMaterial} onRemoveMaterial={onRemoveMaterial} />
             )}
 
             {/* Stock Status */}
             <div className="text-sm">
                 {isInStock ? (
-                    <span className="text-green-600 font-medium">Con existencias</span>
+                    <span className="text-green-600 font-medium">{availableQuantity} en existencia</span>
                 ) : (
                     <span className="text-destructive font-medium">Agotado</span>
                 )}
@@ -233,7 +244,7 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
                             <ShoppingCart className="mr-2 h-5 w-5" />
                             {isPending
                                 ? 'Agregando...'
-                                : !selectedVariant && variants.length > 0
+                                : !selectedVariant && product.kind === ProductKind.Group && variants.length > 0
                                     ? 'Seleccionar Variante'
                                     : !isInStock
                                         ? 'Agotado'
@@ -244,7 +255,7 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
             </div>
 
             {/* SKU */}
-            {product.kind === 'group' ? (
+            {product.kind === ProductKind.Group ? (
                 selectedVariant && (
                     <div className="text-xs text-muted-foreground">
                         SKU: {selectedVariant.sku}

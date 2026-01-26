@@ -1,7 +1,8 @@
-import useShopModel from "@/models/shop/shop.model";
-import { InterfaceInventoryItem } from "@/services/http-client/inventory/inventory.types";
+
+import useShopModel from "@/lib/models/shop.model";
 import { AddCompoundItemToCartStrategy } from "./add-compound-item-to-cart.strategy";
 import { AddSimpleItemToCartStrategy } from "./add-simple-item-to-cart.strategy";
+import { InterfaceInventoryItem } from "@/lib/swipall/types/types";
 
 export class AddItemStrategyFactory {
     private simpleProductStrategy: AddSimpleItemToCartStrategy;

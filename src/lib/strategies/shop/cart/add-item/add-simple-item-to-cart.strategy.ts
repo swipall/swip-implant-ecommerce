@@ -1,8 +1,6 @@
-import useShopModel from "@/models/shop/shop.model";
-import { AddItemToCartParams } from "@/models/shop/shop.types";
-import { InterfaceApiDetailResponse } from "@/services/http-client/http-client.types";
-import { InterfaceInventoryItem } from "@/services/http-client/inventory/inventory.types";
-import { ShopCartItem } from "@/services/http-client/shop/shop.types";
+
+import useShopModel from "@/lib/models/shop.model";
+import { AddItemToCartParams, InterfaceApiDetailResponse, InterfaceInventoryItem, ShopCartItem } from "@/lib/swipall/types/types";
 import { AddItemToCartStrategy } from "./add-item-strategy.interface";
 
 export class AddSimpleItemToCartStrategy implements AddItemToCartStrategy {
