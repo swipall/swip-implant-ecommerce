@@ -1,5 +1,5 @@
 import { clearCartId, getCartId, setCartId } from '@/lib/cart';
-import { get, patch, post, remove } from './api';
+import { get, patch, post, put, remove } from './api';
 import type {
     Address,
     AddToCartInput,
@@ -22,6 +22,7 @@ import type {
     ShopCart,
     ShopCartItem,
     TaxonomyInterface,
+    UpdateCartDeliveryInfoBody,
     UpdateCustomerInput
 } from './types/types';
 
@@ -176,7 +177,7 @@ export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?
     }
 }
 
-export const existsItemInCart = async (cartId: string, itemId: string): Promise<InterfaceApiListResponse<ShopCartItem>> => {
+export const itemExistsInCart = async (cartId: string, itemId: string): Promise<InterfaceApiListResponse<ShopCartItem>> => {
     const response = await get<InterfaceApiListResponse<ShopCartItem>>(`/api/v1/shop/cart/${cartId}/items`, { item__id: itemId });
     return response;
 }
@@ -214,16 +215,8 @@ export const updateProductInCart = async (itemId: string, body: { quantity: numb
 }
 
 export async function removeFromCart(lineId: string, options?: { useAuthToken?: boolean }): Promise<InterfaceApiDetailResponse<Order>> {
-    const cartId = await getCartId();
-    const endpoint = cartId ? `/api/v1/shop/cart/${cartId}/items/${lineId}` : `/cart/items/${lineId}`;
-
-    const result = await remove<InterfaceApiDetailResponse<Order>>(endpoint, { useAuthToken: options?.useAuthToken });
-
-    if (result?.data?.id) {
-        await setCartId(result.data.id);
-    }
-
-    return result;
+    const endpoint = `/api/v1/shop/cart/item/set/${lineId}/`;
+    return remove<InterfaceApiDetailResponse<Order>>(endpoint, { useAuthToken: options?.useAuthToken });
 }
 
 export async function adjustQuantity(lineId: string, quantity: number, options?: { useAuthToken?: boolean }): Promise<InterfaceApiDetailResponse<Order>> {
@@ -238,6 +231,26 @@ export async function adjustQuantity(lineId: string, quantity: number, options?:
 
     return result;
 }
+
+export const fetchDeliveryItem = async (): Promise<InterfaceApiListResponse<InterfaceInventoryItem>> => {
+    const params = {
+        limit: 1,
+        offset: 0,
+        search: 'DOMICILIO',
+        kind: 'service'
+    }
+    const uri = `/api/v1/shop/items`;
+    return get<InterfaceApiListResponse<InterfaceInventoryItem>>(uri, params);
+}
+
+export const updateCartDeliveryInfo = async (cartId: string, body: UpdateCartDeliveryInfoBody): Promise<InterfaceApiDetailResponse<ShopCart>> => {
+    return patch<InterfaceApiDetailResponse<ShopCart>>(`/api/v1/shop/cart/${cartId}/set/shipping/`, body);
+}
+
+export const setCustomerToCart = async (cartId: string): Promise<InterfaceApiDetailResponse<any>> => {
+    return put<InterfaceApiDetailResponse<any>>(`/api/v1/shop/me/order/${cartId}/set/customer/`, {});
+}
+
 
 export async function applyPromotionCode(couponCode: string, options?: { useAuthToken?: boolean }): Promise<InterfaceApiDetailResponse<Order>> {
     return post<InterfaceApiDetailResponse<Order>>('/cart/promotions', { couponCode }, { useAuthToken: options?.useAuthToken });

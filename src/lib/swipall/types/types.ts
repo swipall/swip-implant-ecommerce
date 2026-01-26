@@ -404,3 +404,12 @@ export interface RegisterInput {
     password2: string;
     username: string;
 }
+
+
+export interface UpdateCartDeliveryInfoBody {
+    for_delivery?: boolean;
+    for_pickup?: boolean;
+    shipment_address?: string | null;
+    status?: 3;
+    external_reference?: string | null;
+}

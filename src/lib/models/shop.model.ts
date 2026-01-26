@@ -1,7 +1,7 @@
-import { itemExistsInCart } from '@/services/http-client/shop';
 import { clearCartId, getCartId, setCartId } from '../cart';
-import { addProductToCart, createShopCart, updateProductInCart } from '../swipall/rest-adapter';
+import { addProductToCart, createShopCart, fetchDeliveryItem, itemExistsInCart, setCustomerToCart, updateCartDeliveryInfo, updateProductInCart } from '../swipall/rest-adapter';
 import { AddItemToCartParams, InterfaceInventoryItem, ShopCart } from '../swipall/types/types';
+import { removeFromCart } from '@/app/cart/actions';
 
 export default function useShopModel() {
 
@@ -68,21 +68,10 @@ export default function useShopModel() {
         }
     }
 
-    const getCartItems = async (cartId: string) => {
-        try {
-            if (!cartId) {
-                throw new Error("No cart ID provided");
-            }
-            const result = await fetchItemsCart(cartId);
-            return result.data;
-        } catch (error) {
-            throw error;
-        }
-    }
 
     const removeItemFromCart = async (itemId: string) => {
         try {
-            return await deleteItemFromCart(itemId);
+            return await removeFromCart(itemId);
         } catch (error) {
             console.error("Error removing item from cart", error);
             throw error;
@@ -91,7 +80,7 @@ export default function useShopModel() {
 
     const fetchDeliveryConcept = async () => {
         try {
-            return (await fetchDeliveryItem()).data.results || [];
+            return (await fetchDeliveryItem()).results || [];
         } catch (error) {
             throw error;
         }
@@ -100,7 +89,7 @@ export default function useShopModel() {
     const onUpdateCartForDelivery = async (cartId: string, deliveryServiceItem: InterfaceInventoryItem) => {
         try {
             const exists = await itemExistsInCart(cartId, deliveryServiceItem.id);
-            if (exists.data.count === 0) {
+            if (exists.count === 0) {
                 //we add the delivery service item to the cart
                 await insertItemInCart(cartId, deliveryServiceItem.id, { quantity: 1, extra_materials: [], price: parseFloat(deliveryServiceItem.app_price || "0") });
             }
@@ -115,9 +104,9 @@ export default function useShopModel() {
         try {
             if (deliveryServiceItem) {
                 const exists = await itemExistsInCart(cartId, deliveryServiceItem.id);
-                if (exists.data.count > 0) {
-                    const itemId = exists.data.results[0].id;
-                    await deleteItemFromCart(itemId);
+                if (exists.count > 0) {
+                    const itemId = exists.results[0].id;
+                    await removeFromCart(itemId);
                 }
             }
             return await updateCartDeliveryInfo(cartId, { for_pickup: true, for_delivery: false, shipment_address: null, external_reference: null });
@@ -140,7 +129,6 @@ export default function useShopModel() {
         getCurrentCartId,
         checkIfItemExistsInCart,
         updateItemInCart,
-        getCartItems,
         removeItemFromCart,
         fetchDeliveryConcept,
         onUpdateCartForDelivery,

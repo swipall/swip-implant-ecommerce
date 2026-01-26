@@ -11,8 +11,8 @@ export class AddSimpleItemToCartStrategy implements AddItemToCartStrategy {
     }
     async addItemToCart(cartId: string, itemId: string, body: AddItemToCartParams): Promise<InterfaceApiDetailResponse<ShopCartItem>> {
         const result = await this.shopModel.checkIfItemExistsInCart(itemId);
-        if (result.data.count > 0) {
-            const itemInCart = result.data.results[0];
+        if (result.count > 0) {
+            const itemInCart = result.results[0];
             return this.shopModel.updateItemInCart(cartId, itemInCart.id, { quantity: itemInCart.quantity + body.quantity });
         }
         return this.shopModel.addItemToCart(cartId, { id: itemId } as InterfaceInventoryItem, body);
