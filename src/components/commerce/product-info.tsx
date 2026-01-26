@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { InterfaceInventoryItem, Material, ProductKind, ProductVariant, VariantOption } from '@/lib/swipall/types/types';
 import { CheckCircle2, ShoppingCart } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import ProductVariants from './product-variants';
 import CompoundMaterialsSelector from './compound-materials-selector';
@@ -35,6 +35,16 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
     const [selectedColorId, setSelectedColorId] = useState<string>('');
     //States for selected materiales when product is of 'compound' kind
     const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
+    
+    const materialIdToTaxonomy = useMemo(() => {
+        const map = new Map<string, string>();
+        product.extra_materials?.forEach(group => {
+            group.materials.forEach((m: Material) => {
+                map.set(m.id, group.taxonomy);
+            });
+        });
+        return map;
+    }, [product.extra_materials]);
 
     const generateVariantLabel = (kind: string) => {
         if (kind === 'size') return 'Tamaño';
@@ -97,35 +107,28 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
         fetchVariant();
     }, [selectedColorId, selectedSizeId, product.id]);
 
-    const handleAttributeChange = (kind: string, valueId: string) => {
+    const handleAttributeChange = useCallback((kind: string, valueId: string) => {
         if (kind === 'size') {
             setSelectedSizeId(valueId);
         } else if (kind === 'color') {
             setSelectedColorId(valueId);
         }
-    };
+    }, []);
 
-    const getSelectedMaterialFromTaxonomy = (taxonomyName: string): Material | undefined => {
-        return selectedMaterials.find(sm => {
-            return product.extra_materials?.some(group =>
-                group.taxonomy === taxonomyName &&
-                group.materials.some((m: any) => m.id === sm.id)
-            );
-        });
-    }
+    const getSelectedMaterialFromTaxonomy = useCallback((taxonomyName: string): Material | undefined => {
+        return selectedMaterials.find(sm => materialIdToTaxonomy.get(sm.id) === taxonomyName);
+    }, [selectedMaterials, materialIdToTaxonomy]);
 
-    const onRemoveMaterial = (materialId: string) => {
+    const onRemoveMaterial = useCallback((materialId: string) => {
         const materialToRemove = selectedMaterials.find(m => m.id === materialId);
         if (materialToRemove) {
             setItemPrice(prev => prev - (parseFloat(materialToRemove.price) || 0));
         }
         setSelectedMaterials(prev => prev.filter(m => m.id !== materialId));
-    }
+    }, [selectedMaterials]);
 
-    const onSelectMaterial = (material: Material) => {
-        const materialTaxonomy = product.extra_materials?.find(group =>
-            group.materials.some((m: any) => m.id === material.id)
-        )?.taxonomy;
+    const onSelectMaterial = useCallback((material: Material) => {
+        const materialTaxonomy = materialIdToTaxonomy.get(material.id);
 
         if (materialTaxonomy) {
             const existingMaterial = getSelectedMaterialFromTaxonomy(materialTaxonomy);
@@ -136,10 +139,8 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
         }
 
         setItemPrice(prev => prev + (parseFloat(material.price) || 0));
-        const selectedMMaterials = [...selectedMaterials, material];
-
-        setSelectedMaterials(selectedMMaterials);
-    }
+        setSelectedMaterials(prev => [...prev, material]);
+    }, [materialIdToTaxonomy, getSelectedMaterialFromTaxonomy]);
 
     const handleAddToCart = async () => {
         // For 'group' kind, require a selected variant
@@ -181,18 +182,23 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
         });
     };
 
+    const isInStock = useMemo(() => 
+        product.kind === ProductKind.Group
+            ? (selectedVariant?.available?.quantity ?? 0) > 0
+            : (product.available?.quantity ?? 0) > 0
+    , [product.kind, product.available?.quantity, selectedVariant?.available?.quantity]);
 
-    const isInStock = product.kind === ProductKind.Group
-        ? (selectedVariant?.available?.quantity ?? 0) > 0
-        : (product.available?.quantity ?? 0) > 0;
+    const availableQuantity = useMemo(() => 
+        product.kind === ProductKind.Group
+            ? selectedVariant?.available?.quantity ?? 0
+            : product.available?.quantity ?? 0
+    , [product.kind, product.available?.quantity, selectedVariant?.available?.quantity]);
 
-    const availableQuantity = product.kind === ProductKind.Group
-        ? selectedVariant?.available?.quantity ?? 0
-        : product.available?.quantity ?? 0;
-
-    const canAddToCart = product.kind === ProductKind.Group
-        ? !!selectedVariant && isInStock
-        : isInStock;
+    const canAddToCart = useMemo(() => 
+        product.kind === ProductKind.Group
+            ? !!selectedVariant && isInStock
+            : isInStock
+    , [product.kind, selectedVariant, isInStock]);
 
     return (
         <div className="space-y-6">
