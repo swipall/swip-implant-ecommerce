@@ -2,23 +2,25 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, MapPin, Truck, CreditCard, Edit, Mail } from 'lucide-react';
+import { Loader2, MapPin, Truck, CreditCard, Edit } from 'lucide-react';
 import { useCheckout } from '../checkout-provider';
 import { placeOrder as placeOrderAction } from '../actions';
 import { Price } from '@/components/commerce/price';
 
 interface ReviewStepProps {
-  onEditStep: (step: 'contact' | 'shipping' | 'delivery' | 'payment') => void;
+  onEditStep: (step: 'shipping' | 'delivery' | 'payment') => void;
 }
 
 export default function ReviewStep({ onEditStep }: ReviewStepProps) {
-  const { order, paymentMethods, selectedPaymentMethodCode, isGuest } = useCheckout();
+  const { order, paymentMethods, selectedPaymentMethodCode, deliveryItem } = useCheckout();
   const [loading, setLoading] = useState(false);
 
   const selectedPaymentMethod = paymentMethods.find(
-    (method) => method.code === selectedPaymentMethodCode
+    (method) => method.id === selectedPaymentMethodCode
   );
 
+  const isForDelivery = order.for_delivery;
+  const isForPickup = order.for_pickup;  
   const handlePlaceOrder = async () => {
     if (!selectedPaymentMethodCode) return;
 
@@ -36,57 +38,30 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
 
   return (
     <div className="space-y-6">
-      <h3 className="font-semibold text-lg">Review your order</h3>
+      <h3 className="font-semibold text-lg">Revisa tu pedido</h3>
 
-      <div className={`grid grid-cols-1 gap-6 ${isGuest ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'}`}>
-        {isGuest && order.customer && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Mail className="h-5 w-5 text-muted-foreground" />
-              <h4 className="font-medium">Contact</h4>
-            </div>
-            <div className="text-sm space-y-3">
-              <div>
-                <p className="font-medium">
-                  {order.customer.firstName} {order.customer.lastName}
-                </p>
-                <p className="text-muted-foreground">{order.customer.emailAddress}</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEditStep('contact')}
-              >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
-            </div>
-          </div>
-        )}
-
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {/* Shipping Address */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-muted-foreground" />
-            <h4 className="font-medium">Shipping Address</h4>
+            <h4 className="font-medium">Dirección de envío</h4>
           </div>
-          {order.shippingAddress ? (
+          {order.shipment_address ? (
             <div className="text-sm space-y-3">
               <div>
-                <p className="font-medium">{order.shippingAddress.fullName}</p>
+                <p className="font-medium">{order.shipment_address.receiver || 'Sin nombre'}</p>
+                <p className="text-muted-foreground">{order.shipment_address.address}</p>
+                {order.shipment_address.suburb && (
+                  <p className="text-muted-foreground">{order.shipment_address.suburb}</p>
+                )}
                 <p className="text-muted-foreground">
-                  {order.shippingAddress.streetLine1}
-                  {order.shippingAddress.streetLine2 && `, ${order.shippingAddress.streetLine2}`}
+                  {order.shipment_address.city}, {order.shipment_address.state} {order.shipment_address.postal_code}
                 </p>
-                <p className="text-muted-foreground">
-                  {order.shippingAddress.city}, {order.shippingAddress.province} {order.shippingAddress.postalCode}
-                </p>
-                <p className="text-muted-foreground">
-                  {typeof order.shippingAddress.country === 'string' 
-                    ? order.shippingAddress.country 
-                    : order.shippingAddress.country?.name}
-                </p>
-                <p className="text-muted-foreground">{order.shippingAddress.phoneNumber}</p>
+                <p className="text-muted-foreground">{order.shipment_address.country}</p>
+                {order.shipment_address.mobile && (
+                  <p className="text-muted-foreground">{order.shipment_address.mobile}</p>
+                )}
               </div>
               <Button
                 variant="outline"
@@ -94,11 +69,11 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
                 onClick={() => onEditStep('shipping')}
               >
                 <Edit className="h-4 w-4 mr-1" />
-                Edit
+                Editar
               </Button>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No shipping address set</p>
+            <p className="text-sm text-muted-foreground">No hay dirección de envío configurada</p>
           )}
         </div>
 
@@ -106,42 +81,49 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Truck className="h-5 w-5 text-muted-foreground" />
-            <h4 className="font-medium">Delivery Method</h4>
+            <h4 className="font-medium">Método de entrega</h4>
           </div>
-          {order.shippingLines && order.shippingLines.length > 0 ? (
-            <div className="text-sm space-y-3">
-              <div>
-                <p className="font-medium">{order.shippingLines[0].shippingMethod.name}</p>
-                <p className="text-muted-foreground">
-                  {order.shippingLines[0].priceWithTax === 0
-                    ? 'FREE'
-                    : <Price value={order.shippingLines[0].priceWithTax} currencyCode={order.currencyCode} />}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEditStep('delivery')}
-              >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
+          <div className="text-sm space-y-3">
+            <div>
+              {isForDelivery && deliveryItem ? (
+                <>
+                  <p className="font-medium">Entrega a domicilio</p>
+                  <p className="text-muted-foreground">
+                    {deliveryItem.web_price && parseFloat(deliveryItem.web_price) > 0
+                      ? <Price value={Number(deliveryItem.web_price)} />
+                      : 'GRATIS'}
+                  </p>
+                </>
+              ) : isForPickup ? (
+                <>
+                  <p className="font-medium">Recoger en tienda</p>
+                  <p className="text-muted-foreground">Sin costo</p>
+                </>
+              ) : (
+                <p className="text-muted-foreground">No hay método de entrega seleccionado</p>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No delivery method selected</p>
-          )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEditStep('delivery')}
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              Editar
+            </Button>
+          </div>
         </div>
 
         {/* Payment Method */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-muted-foreground" />
-            <h4 className="font-medium">Payment Method</h4>
+            <h4 className="font-medium">Método de pago</h4>
           </div>
           {selectedPaymentMethod ? (
             <div className="text-sm space-y-3">
               <div>
-                <p className="font-medium">{selectedPaymentMethod.name}</p>
+                <p className="font-medium">{selectedPaymentMethod.label}</p>
                 {selectedPaymentMethod.description && (
                   <p className="text-muted-foreground mt-1">
                     {selectedPaymentMethod.description}
@@ -154,28 +136,28 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
                 onClick={() => onEditStep('payment')}
               >
                 <Edit className="h-4 w-4 mr-1" />
-                Edit
+                Editar
               </Button>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No payment method selected</p>
+            <p className="text-sm text-muted-foreground">No hay método de pago seleccionado</p>
           )}
         </div>
       </div>
 
       <Button
         onClick={handlePlaceOrder}
-        disabled={loading || !order.shippingAddress || !order.shippingLines?.length || !selectedPaymentMethodCode}
+        disabled={loading || !order.shipment_address || !selectedPaymentMethodCode || (!isForDelivery && !isForPickup)}
         size="lg"
         className="w-full"
       >
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Place Order
+        Confirmar pedido
       </Button>
 
-      {(!order.shippingAddress || !order.shippingLines?.length || !selectedPaymentMethodCode) && (
+      {(!order.shipment_address || !selectedPaymentMethodCode || (!isForDelivery && !isForPickup)) && (
         <p className="text-sm text-destructive text-center">
-          Please complete all previous steps before placing your order
+          Por favor completa todos los pasos anteriores antes de confirmar tu pedido
         </p>
       )}
     </div>

@@ -157,7 +157,7 @@ export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?
                 { useAuthToken: options?.useAuthToken }
             ),
         ]);        
-        const cartData = cartResponse;
+        const cartData = cartResponse;        
         const itemLines = Array.isArray((itemsResponse as InterfaceApiDetailResponse<ShopCartItem[]>)?.data)
             ? (itemsResponse as InterfaceApiDetailResponse<ShopCartItem[]>)?.data || []
             : Array.isArray((itemsResponse as InterfaceApiListResponse<ShopCartItem>)?.results)
