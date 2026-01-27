@@ -2,11 +2,11 @@
 
 import {
     removeFromCart as apiRemoveFromCart,
-    adjustQuantity as apiAdjustQuantity,
     applyPromotionCode as apiApplyPromotion,
     removePromotionCode as apiRemovePromotion
 } from '@/lib/swipall/rest-adapter';
 import {updateTag} from 'next/cache';
+import useShopModel from '@/lib/models/shop.model';
 
 export async function removeFromCart(lineId: string) {
     try {
@@ -20,7 +20,14 @@ export async function removeFromCart(lineId: string) {
 
 export async function adjustQuantity(lineId: string, quantity: number) {
     try {
-        await apiAdjustQuantity(lineId, quantity, {useAuthToken: true});
+        const shopModel = useShopModel();
+        const cartId = await shopModel.getCurrentCartId();
+
+        if (!cartId) {
+            throw new Error('No cart ID found while adjusting quantity');
+        }
+
+        await shopModel.updateItemInCart(cartId, lineId, {quantity});
         updateTag('cart');
     } catch (error) {
         console.error('Error adjusting quantity:', error);

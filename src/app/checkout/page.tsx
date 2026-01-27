@@ -15,13 +15,13 @@ export const metadata: Metadata = {
 
 export default async function CheckoutPage(_props: PageProps<'/checkout'>) {
     const [orderRes, countries, shippingMethodsRes, paymentMethodsRes] = await Promise.all([
-        getActiveOrder({ useAuthToken: true }),
+        getActiveOrder({ useAuthToken: true, mutateCookies: false }),
         getAvailableCountriesCached(),
         getEligibleShippingMethods({ useAuthToken: true }),
         getEligiblePaymentMethods({ useAuthToken: true }),
     ]);
 
-    const activeOrder = orderRes.data;
+    const activeOrder = orderRes;
 
     if (!activeOrder || activeOrder.lines.length === 0) {
         return redirect('/cart');

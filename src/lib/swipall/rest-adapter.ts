@@ -143,41 +143,41 @@ export async function searchProducts(input: SearchInput): Promise<SearchResult> 
 // Cart/Order Endpoints
 // ============================================================================
 
-export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?: string }): Promise<InterfaceApiDetailResponse<Order>> {
+export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?: string; mutateCookies?: boolean }): Promise<Order | null> {
     const storedCartId = options?.cartId || await getCartId();
-
+    const mutateCookies = options?.mutateCookies === true;
+    
     if (!storedCartId) {
-        return { data: undefined } as InterfaceApiDetailResponse<Order>;
+        return null
     }
 
     try {
         const [cartResponse, itemsResponse] = await Promise.all([
-            get<InterfaceApiDetailResponse<ShopCart>>(`/api/v1/shop/cart/${storedCartId}`, undefined, { useAuthToken: options?.useAuthToken }),
+            get<ShopCart>(`/api/v1/shop/cart/${storedCartId}`, undefined, { useAuthToken: options?.useAuthToken }),
             get<InterfaceApiDetailResponse<ShopCartItem[]> | InterfaceApiListResponse<ShopCartItem>>(
                 `/api/v1/shop/cart/${storedCartId}/items`,
                 undefined,
                 { useAuthToken: options?.useAuthToken }
             ),
-        ]);
-
-        const cartData = cartResponse?.data;
+        ]);        
+        const cartData = cartResponse;
         const itemLines = Array.isArray((itemsResponse as InterfaceApiDetailResponse<ShopCartItem[]>)?.data)
             ? (itemsResponse as InterfaceApiDetailResponse<ShopCartItem[]>)?.data || []
             : Array.isArray((itemsResponse as InterfaceApiListResponse<ShopCartItem>)?.results)
                 ? (itemsResponse as InterfaceApiListResponse<ShopCartItem>).results
                 : [];
 
-        const orderWithLines = cartData ? { ...cartData, lines: itemLines } as Order : undefined;
-
-        if (orderWithLines?.id) {
+        const orderWithLines = cartData ? { ...cartData, lines: itemLines } as Order : null;        
+        if (orderWithLines?.id && mutateCookies) {
             await setCartId(orderWithLines.id);
         }
-
-        return { ...cartResponse, data: orderWithLines } as InterfaceApiDetailResponse<Order>;
+        return orderWithLines;
     } catch (error) {
-        await clearCartId();
+        if (mutateCookies) {
+            await clearCartId();
+        }
         console.error('[getActiveOrder] Failed to fetch cart:', error);
-        return { data: undefined } as InterfaceApiDetailResponse<Order>;
+        return null;
     }
 }
 
@@ -225,19 +225,6 @@ export const updateProductInCart = async (itemId: string, body: { quantity: numb
 export async function removeFromCart(lineId: string, options?: { useAuthToken?: boolean }): Promise<InterfaceApiDetailResponse<Order>> {
     const endpoint = `/api/v1/shop/cart/item/set/${lineId}/`;
     return remove<InterfaceApiDetailResponse<Order>>(endpoint, { useAuthToken: options?.useAuthToken });
-}
-
-export async function adjustQuantity(lineId: string, quantity: number, options?: { useAuthToken?: boolean }): Promise<InterfaceApiDetailResponse<Order>> {
-    const cartId = await getCartId();
-    const endpoint = cartId ? `/api/v1/shop/cart/${cartId}/items/${lineId}` : `/cart/items/${lineId}`;
-
-    const result = await patch<InterfaceApiDetailResponse<Order>>(endpoint, { quantity }, { useAuthToken: options?.useAuthToken });
-
-    if (result?.data?.id) {
-        await setCartId(result.data.id);
-    }
-
-    return result;
 }
 
 export const fetchDeliveryItem = async (): Promise<InterfaceApiListResponse<InterfaceInventoryItem>> => {

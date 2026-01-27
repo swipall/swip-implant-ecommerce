@@ -9,8 +9,8 @@ export async function Cart() {
     let activeOrder = null;
     
     try {
-        const result = await getActiveOrder({ useAuthToken: true });
-        activeOrder = result?.data || null;
+        const result = await getActiveOrder({ useAuthToken: true, mutateCookies: false });
+        activeOrder = result || null;
     } catch (error) {
         console.error('[Cart] Failed to fetch active order:', error);
         // Continue with empty cart if API fails
