@@ -1,6 +1,6 @@
 import { getCatalogs } from "@/lib/swipall/cached";
 import { cacheLife } from "next/cache";
-import { BannerCarousel } from "./carousel";
+import { BannerCarousel } from "../carousel";
 
 export async function FeaturedBannersDisplay() {
     "use cache";
