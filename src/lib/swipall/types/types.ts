@@ -5,7 +5,7 @@
  * throughout the Swipall REST adapter, organized by feature.
  */
 
-import { AddressInterface } from "../users/user.types";
+import { AddressInterface, OrderItemDetailInterface } from "../users/user.types";
 
 // ============================================================================
 // Authentication Types
@@ -363,6 +363,28 @@ export interface ShopCartItem {
 
 export interface Order extends ShopCart {
     lines: ShopCartItem[];
+}
+
+export interface OrderDetailInterface {
+    id: string;
+    created_at: string;
+    folio: string;
+    store: string;
+    status: number;
+    sub_total: string;
+    discount_total: string;
+    shipment_total: string;
+    tax_total: string;
+    grand_total: string;
+    is_paid: number;
+    weight: number;
+    balance: string;
+    payment_type: string;
+    shipment_address: AddressInterface | null;
+    items: {
+        results: OrderItemDetailInterface[];
+        count: number;
+    };
 }
 
 export interface AddToCartInput {
