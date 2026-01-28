@@ -2,6 +2,7 @@ import OrderIsPaidComponent from '@/components/commerce/order-is-paid';
 import PaymentTypeTextComponent from '@/components/commerce/order-payment-type';
 import OrderStatusComponent from '@/components/commerce/order-status';
 import { Price } from '@/components/commerce/price';
+import ProductExtraMaterialsComponent from '@/components/commerce/product-extra-materials';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { getAuthToken } from "@/lib/auth";
 import { formatDate } from '@/lib/format';
 import { getOrderDetail } from '@/lib/swipall/rest-adapter';
-import { OrderDetailInterface } from '@/lib/swipall/users/user.types';
+import { OrderDetailInterface, OrderItemDetailInterface } from '@/lib/swipall/users/user.types';
 import { ChevronLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
@@ -37,8 +38,6 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
 
     const orderRes = await getOrderDetail(code, { useAuthToken: true });
     const order: OrderDetailInterface = orderRes;
-    console.log(order.items.results);
-
     if (!order) {
         return redirect('/account/orders');
     }
@@ -92,15 +91,7 @@ export default async function OrderDetailPage(props: PageProps<'/account/orders/
                                             <p className="text-sm text-muted-foreground">
                                                 SKU: {item.item.sku}
                                             </p>
-                                            {item.extra_materials && item.extra_materials.length > 0 && (
-                                                <div className="flex flex-wrap gap-1 mt-2">
-                                                    {item.extra_materials.map((attr, index) => (
-                                                        <Badge key={index} variant="secondary" className="text-xs">
-                                                            {attr.name}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            )}
+                                            <ProductExtraMaterialsComponent item={item} />
                                         </div>
                                         <div className="text-right">
                                             <p className="font-medium">

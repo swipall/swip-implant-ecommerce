@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner';
 import ProductVariants from './product-variants';
 import CompoundMaterialsSelector from './compound-materials-selector';
+import { useAuthUser } from '@/hooks/use-auth-user';
 
 interface ProductInfoProps {
     product: InterfaceInventoryItem;
@@ -25,6 +26,7 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
     const router = useRouter();
     const currentSearchParams = useSearchParams();
     const redirectTo = currentSearchParams?.get('redirectTo') as string | undefined;
+    const { user } = useAuthUser();
     const [isPending, startTransition] = useTransition();
     const [isAdded, setIsAdded] = useState(false);
     const [itemPrice, setItemPrice] = useState<number>(product.web_price ? parseFloat(product.web_price) : 0);
@@ -81,6 +83,14 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
     useEffect(() => {
         if (product.kind === ProductKind.Group) {
             formatVariants(product);
+        }
+        return () => {
+            setVariants([]);
+            setSelectedMaterials([]);
+            setSelectedVariant(null);
+            setSelectedColorId('');
+            setSelectedSizeId('');
+            setItemPrice(product.web_price ? parseFloat(product.web_price) : 0);
         }
     }, [product]);
 
@@ -153,7 +163,7 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
         
         if (product.kind === ProductKind.Compound) {
             // if the user is not logged in, redirect to login page
-            if (!redirectTo) {
+            if (!user) {
                 toast.error('Error', {
                     description: 'Por favor inicia sesión para agregar productos compuestos',
                 });
@@ -170,8 +180,9 @@ export function ProductInfo({ product, searchParams }: ProductInfoProps) {
             // Prepare parameters based on product kind
             const addToCartParams = {
                 quantity: 1,
-                extra_materials: product.kind === ProductKind.Compound ? selectedMaterials.map(m => m.id) : [],
-                price: itemPrice
+                extra_materials: product.kind === ProductKind.Compound ? selectedMaterials.map(mat => ({ material_id: mat.id, name: mat.name })) : [],
+                price: itemPrice,
+                item: itemId
             };
 
             const result = await addToCart(itemId, addToCartParams);

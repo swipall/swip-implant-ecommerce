@@ -1,7 +1,8 @@
 
 
 import useShopModel from "@/lib/models/shop.model";
-import { AddItemToCartParams, InterfaceApiDetailResponse, InterfaceInventoryItem, ShopCartItem } from "@/lib/swipall/types/types";
+import { AddProductToCartBody } from "@/lib/swipall/rest-adapter";
+import { InterfaceApiDetailResponse, InterfaceInventoryItem, ShopCartItem } from "@/lib/swipall/types/types";
 import { AddItemToCartStrategy } from "./add-item-strategy.interface";
 
 /**
@@ -17,7 +18,7 @@ export class AddCompoundItemToCartStrategy implements AddItemToCartStrategy {
         this.shopModel = shopModel;
     }
     
-    async addItemToCart(cartId: string, itemId: string, body: AddItemToCartParams): Promise<InterfaceApiDetailResponse<ShopCartItem>> {
+    async addItemToCart(cartId: string, itemId: string, body: AddProductToCartBody): Promise<InterfaceApiDetailResponse<ShopCartItem>> {
         // Los productos compuestos siempre se añaden como nuevos items
         // debido a que pueden tener diferentes combinaciones de materiales
         return this.shopModel.addItemToCart(cartId, { id: itemId } as InterfaceInventoryItem, body);

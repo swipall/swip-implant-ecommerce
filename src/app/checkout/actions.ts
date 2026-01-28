@@ -102,8 +102,6 @@ const onProcessCardPayment = async () => {
                 throw new Error('No se pudo crear la preferencia de pago de Mercado Pago.' + response.mp_preference.preference.message);
             }
         }
-        console.log(response);
-
         const initPoint = response.mp_preference.preference.init_point;
         handleBrowserCheckout(initPoint);
 
@@ -131,9 +129,7 @@ const onProcessUponDeliveryPayment = async () => {
 }
 
 export const processPayment = async (selectedPaymentMethod: string) => {
-    try {
-        console.log('selectedPaymentMethod',selectedPaymentMethod);
-        
+    try {        
         if (selectedPaymentMethod === 'card') {
             await onProcessCardPayment();
             return;

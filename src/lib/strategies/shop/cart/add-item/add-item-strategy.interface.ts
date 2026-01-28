@@ -1,4 +1,5 @@
-import { AddItemToCartParams, InterfaceApiDetailResponse, InterfaceInventoryItem, ShopCartItem } from "@/lib/swipall/types/types";
+import { AddProductToCartBody } from "@/lib/swipall/rest-adapter";
+import { InterfaceApiDetailResponse, InterfaceInventoryItem, ShopCartItem } from "@/lib/swipall/types/types";
 
 /**
  * Interfaz para las estrategias de añadir items al carrito.
@@ -14,7 +15,7 @@ export interface AddItemToCartStrategy {
      * @param body - Parámetros del item (cantidad, materiales extra, precio)
      * @returns Respuesta con el item añadido al carrito
      */
-    addItemToCart(cartId: string, itemId: string, body: AddItemToCartParams): Promise<InterfaceApiDetailResponse<ShopCartItem>>;
+    addItemToCart(cartId: string, itemId: string, body: AddProductToCartBody): Promise<InterfaceApiDetailResponse<ShopCartItem>>;
     
     /**
      * Determina si esta estrategia puede manejar el tipo de producto dado.

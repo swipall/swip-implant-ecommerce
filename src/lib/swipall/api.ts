@@ -144,7 +144,7 @@ async function request<TResult>(
         }
     }
 
-    const url = `${SWIPALL_API_URL}${endpoint}`;    
+    const url = `${SWIPALL_API_URL}${endpoint}`;
     const requestInit: RequestInit = {
         ...fetchOptions,
         method,
@@ -164,11 +164,11 @@ async function request<TResult>(
 
         // Return appropriate empty data based on endpoint pattern
         let emptyData: TResult;
-        if (endpoint.includes('/search') || 
-            endpoint.includes('/posts') || 
-            endpoint.includes('/taxonomies') || 
-            endpoint.includes('/addresses') || 
-            endpoint.includes('/shipping-methods') || 
+        if (endpoint.includes('/search') ||
+            endpoint.includes('/posts') ||
+            endpoint.includes('/taxonomies') ||
+            endpoint.includes('/addresses') ||
+            endpoint.includes('/shipping-methods') ||
             endpoint.includes('/payment-methods') ||
             endpoint.includes('/taxonomies')) {
             // List endpoints - return InterfaceApiListResponse structure
@@ -184,9 +184,9 @@ async function request<TResult>(
         }
 
         return emptyData;
-    }    
+    }
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));        
+        const errorData = await response.json().catch(() => ({}));
         const errorMessage = transformError(errorData) || `API request failed with status ${response.status} for ${method} ${endpoint}`;
         throw new Error(errorMessage);
     }
@@ -227,18 +227,21 @@ export async function mutate<TResult>(
     return post<TResult>(endpoint, params, options);
 }
 
-function transformError(error: any): string {
+function transformError(error: any): string | null {
     if (error instanceof Error) {
         return error.message;
     }
-    if(typeof error === 'object' && error !== null) {
+    if (typeof error === 'object' && error !== null) {
         if ('message' in error && typeof error.message === 'string') {
             return error.message;
         }
         if ('errors' in error && Array.isArray(error.errors)) {
             return error.errors.map((e: any) => (typeof e === 'string' ? e : JSON.stringify(e))).join(', ');
         }
-        const firstKey = Object.keys(error)[0];        
+        const firstKey = Object.keys(error)[0];
+        if (!firstKey) {
+            return null;
+        }
         if (Array.isArray(error[firstKey])) {
             return error[firstKey].map((e: any) => (typeof e === 'string' ? e : JSON.stringify(e))).join(', ');
         }

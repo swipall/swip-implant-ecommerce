@@ -1,7 +1,7 @@
-import { clearCartId, getCartId, setCartId } from '../cart';
-import { addProductToCart, createShopCart, fetchDeliveryItem, itemExistsInCart, setCustomerToCart, updateCartDeliveryInfo, updateProductInCart } from '../swipall/rest-adapter';
-import { AddItemToCartParams, InterfaceInventoryItem, ShopCart } from '../swipall/types/types';
 import { removeFromCart } from '@/app/cart/actions';
+import { clearCartId, getCartId, setCartId } from '../cart';
+import { addProductToCart, AddProductToCartBody, createShopCart, fetchDeliveryItem, itemExistsInCart, setCustomerToCart, updateCartDeliveryInfo, updateProductInCart } from '../swipall/rest-adapter';
+import { InterfaceInventoryItem, ShopCart } from '../swipall/types/types';
 
 export default function useShopModel() {
 
@@ -38,7 +38,7 @@ export default function useShopModel() {
     }
 
 
-    const insertItemInCart = async (cartId: string, itemId: string, { quantity, extra_materials, price }: AddItemToCartParams) => {
+    const insertItemInCart = async (cartId: string, itemId: string, { quantity, extra_materials, price }: AddProductToCartBody) => {
         try {
             return await addProductToCart(cartId, { item: itemId, quantity, extra_materials, price });
         } catch (error) {
@@ -46,12 +46,12 @@ export default function useShopModel() {
         }
     }
 
-    const addItemToCart = async (cartId: string, item: InterfaceInventoryItem, { quantity, extra_materials, price }: AddItemToCartParams) => {
+    const addItemToCart = async (cartId: string, item: InterfaceInventoryItem, { quantity, extra_materials, price }: AddProductToCartBody) => {
         try {
             if (!cartId) {
                 throw new Error("No cart ID provided");
             }
-            return await insertItemInCart(cartId, item.id, { quantity, extra_materials, price });
+            return await insertItemInCart(cartId, item.id, { quantity, extra_materials, price, item: item.id });
         } catch (error) {
             throw error;
         }
@@ -91,7 +91,7 @@ export default function useShopModel() {
             const exists = await itemExistsInCart(cartId, deliveryServiceItem.id);
             if (exists.count === 0) {
                 //we add the delivery service item to the cart
-                await insertItemInCart(cartId, deliveryServiceItem.id, { quantity: 1, extra_materials: [], price: parseFloat(deliveryServiceItem.web_price || "0") });
+                await insertItemInCart(cartId, deliveryServiceItem.id, { quantity: 1, extra_materials: [], price: parseFloat(deliveryServiceItem.web_price || "0"), item: deliveryServiceItem.id });
             }
             return await updateCartDeliveryInfo(cartId, { for_delivery: true, for_pickup: false });
         } catch (error) {

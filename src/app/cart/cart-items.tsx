@@ -5,6 +5,7 @@ import { Minus, Plus, X } from 'lucide-react';
 import { Price } from '@/components/commerce/price';
 import { removeFromCart, adjustQuantity } from './actions';
 import { Order } from '@/lib/swipall/types/types';
+import ProductExtraMaterialsComponent from '@/components/commerce/product-extra-materials';
 
 export async function CartItems({ activeOrder }: { activeOrder: Order | null }) {
     if (!activeOrder || !activeOrder.lines || activeOrder.lines.length === 0) {
@@ -51,6 +52,7 @@ export async function CartItems({ activeOrder }: { activeOrder: Order | null }) 
                             <p className="text-sm text-muted-foreground mt-1">
                                 SKU: {line.item.sku}
                             </p>
+                            <ProductExtraMaterialsComponent item={line} />
                             <p className="text-sm text-muted-foreground mt-2 sm:hidden">
                                 <Price value={unitPrice} />xU
                             </p>
