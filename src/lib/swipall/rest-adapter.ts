@@ -25,7 +25,7 @@ import type {
     UpdateCartDeliveryInfoBody,
     UpdateCustomerInput
 } from './types/types';
-import { OrderDetailInterface } from './users/user.types';
+import { OrderDetailInterface, OrderInterface } from './users/user.types';
 
 
 // ============================================================================
@@ -95,7 +95,7 @@ export async function getCollection(slug: string): Promise<InterfaceApiDetailRes
     return get<InterfaceApiDetailResponse<Collection>>(`/collections/${slug}`);
 }
 
-export async function getPosts(params:any): Promise<InterfaceApiListResponse<any>> {
+export async function getPosts(params: any): Promise<InterfaceApiListResponse<any>> {
     return get<InterfaceApiListResponse<any>>('/api/v1/cms/posts', params);
 }
 
@@ -140,7 +140,7 @@ export async function searchProducts(input: SearchInput): Promise<SearchResult> 
 export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?: string; mutateCookies?: boolean }): Promise<Order | null> {
     const storedCartId = options?.cartId || await getCartId();
     const mutateCookies = options?.mutateCookies === true;
-    
+
     if (!storedCartId) {
         return null
     }
@@ -153,14 +153,14 @@ export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?
                 undefined,
                 { useAuthToken: options?.useAuthToken }
             ),
-        ]);        
-        const cartData = cartResponse;        
+        ]);
+        const cartData = cartResponse;
         const itemLines = Array.isArray((itemsResponse as InterfaceApiDetailResponse<ShopCartItem[]>)?.data)
             ? (itemsResponse as InterfaceApiDetailResponse<ShopCartItem[]>)?.data || []
             : Array.isArray((itemsResponse as InterfaceApiListResponse<ShopCartItem>)?.results)
                 ? (itemsResponse as InterfaceApiListResponse<ShopCartItem>).results
-                : [];        
-        const orderWithLines = cartData ? { ...cartData, lines: itemLines } as Order : null;        
+                : [];
+        const orderWithLines = cartData ? { ...cartData, lines: itemLines } as Order : null;
         if (orderWithLines?.id && mutateCookies) {
             await setCartId(orderWithLines.id);
         }
@@ -260,16 +260,12 @@ export async function setShippingAddress(input: CreateAddressInput, options?: { 
 // Order History Endpoints
 // ============================================================================
 
-export async function getCustomerOrders(params?: { take?: number; skip?: number }, options?: { useAuthToken?: boolean }): Promise<InterfaceApiListResponse<Order>> {
-    const searchParams = new URLSearchParams();
-    if (params?.take) searchParams.set('take', params.take.toString());
-    if (params?.skip) searchParams.set('skip', params.skip.toString());
-    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
-    return get<InterfaceApiListResponse<Order>>(`/orders${query}`, { useAuthToken: options?.useAuthToken });
+export async function getCustomerOrders(params?: { limit?: number; offset?: number }, options?: { useAuthToken?: boolean }): Promise<InterfaceApiListResponse<OrderInterface>> {
+    return get<InterfaceApiListResponse<OrderInterface>>(`/api/v1/shop/me/orders`, params, { useAuthToken: options?.useAuthToken });
 }
 
 export async function getOrderDetail(code: string, options?: { useAuthToken?: boolean }): Promise<OrderDetailInterface> {
-    return get<OrderDetailInterface>(`/api/v1/shop/me/order/${code}`, { useAuthToken: options?.useAuthToken });
+    return get<OrderDetailInterface>(`/api/v1/shop/me/order/${code}`, undefined, { useAuthToken: options?.useAuthToken });
 }
 
 // ============================================================================
