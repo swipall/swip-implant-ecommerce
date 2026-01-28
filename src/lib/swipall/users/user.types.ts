@@ -1,3 +1,5 @@
+import { OrderPaymentType } from "@/app/account/orders/types";
+import { Material, ProductAttribute } from "../types/types";
 
 export interface AddressInterface {
     id: string;
@@ -43,7 +45,7 @@ export interface OrderItemInterface {
     name: string;
     featured_image: string;
     allow_serial_numbers: boolean;
-    attribute_combinations: any[];
+    attribute_combinations: ProductAttribute[];
 }
 
 export interface OrderItemDetailInterface {
@@ -54,7 +56,7 @@ export interface OrderItemDetailInterface {
     base: string;
     kind: string;
     serial_number: string | null;
-    extra_materials: any[];
+    extra_materials: Material[];
     extra_fields: any[];
     properties: any[];
     item: OrderItemInterface;
@@ -74,10 +76,12 @@ export interface OrderDetailInterface {
     is_paid: number;
     weight: number;
     balance: string;
-    payment_type: string;
+    payment_type: OrderPaymentType;
     shipment_address: AddressInterface | null;
     items: {
         results: OrderItemDetailInterface[];
         count: number;
     };
+    for_delivery: boolean;
+    for_pickup: boolean;
 }

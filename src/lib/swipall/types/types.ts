@@ -5,6 +5,7 @@
  * throughout the Swipall REST adapter, organized by feature.
  */
 
+import { OrderStatusPaid } from "@/app/account/orders/types";
 import { AddressInterface, OrderItemDetailInterface } from "../users/user.types";
 
 // ============================================================================
@@ -376,7 +377,7 @@ export interface OrderDetailInterface {
     shipment_total: string;
     tax_total: string;
     grand_total: string;
-    is_paid: number;
+    is_paid: OrderStatusPaid;
     weight: number;
     balance: string;
     payment_type: string;

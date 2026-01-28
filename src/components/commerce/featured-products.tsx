@@ -1,7 +1,7 @@
 import { ProductCarousel } from "@/components/commerce/product-carousel";
-import { cacheLife } from "next/cache";
 import { searchProducts } from "@/lib/swipall/rest-adapter";
 import { ProductKind } from "@/lib/swipall/types/types";
+import { cacheLife } from "next/cache";
 
 async function getFeaturedCollectionProducts() {
     'use cache'
@@ -14,7 +14,7 @@ async function getFeaturedCollectionProducts() {
         };     
         // Fetch featured products via REST search
         const result = await searchProducts(params);
-        return result.results;
+        return result.results.filter(product => product.kind !== ProductKind.Service);
     } catch (error) {
         // Return empty array during build or when API is unavailable
         return [];

@@ -21,6 +21,8 @@ import {Price} from '@/components/commerce/price';
 import {formatDate} from '@/lib/format';
 import Link from "next/link";
 import {redirect} from "next/navigation";
+import OrderIsPaidComponent from '@/components/commerce/order-is-paid';
+import OrderStatusComponent from '@/components/commerce/order-status';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -50,7 +52,7 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-6">Mis Órdenes</h1>
+            <h1 className="text-3xl font-bold mb-6">Mis Pedidos</h1>
 
             {orders.length === 0 ? (
                 <div className="text-center py-12">
@@ -62,9 +64,10 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                         <Table>
                             <TableHeader className="bg-muted">
                                 <TableRow>
-                                    <TableHead>Número de Orden</TableHead>
+                                    <TableHead>Número de Pedido</TableHead>
                                     <TableHead>Fecha</TableHead>
                                     <TableHead>Estado</TableHead>
+                                    <TableHead>Pagado</TableHead>
                                     <TableHead className="text-right">Total</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -74,7 +77,7 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                                         <TableCell className="font-medium">
                                             <Button asChild variant="outline">
                                                 <Link
-                                                    href={`/account/orders/${order.folio}`}
+                                                    href={`/account/orders/${order.id}`}
                                                 >
                                                     {order.folio} <ArrowRightIcon className="ml-2 h-4 w-4"/>
                                                 </Link>
@@ -84,9 +87,10 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                                             {formatDate(order.created_at)}
                                         </TableCell>
                                         <TableCell>
-                                            <span className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-muted text-foreground">
-                                                {order.is_paid ? 'Pagado' : 'Pendiente'}
-                                            </span>
+                                            <OrderStatusComponent className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-muted text-foreground" status={order.status} />
+                                        </TableCell>
+                                        <TableCell>
+                                            <OrderIsPaidComponent className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-muted text-foreground" isPaid={order.is_paid} />
                                         </TableCell>
                                         <TableCell className="text-right font-medium">
                                             <Price value={parseFloat(order.grand_total)} currencyCode="MXN"/>
