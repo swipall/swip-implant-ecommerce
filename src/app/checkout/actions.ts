@@ -124,7 +124,6 @@ const onProcessUponDeliveryPayment = async () => {
         if (!response) {
             throw new Error('No se pudo actualizar el estado del carrito para pago contraentrega.');
         }
-        const updatedCart = response;
         redirect(`/order-confirmation/${cartId}`);
     } catch (error) {
         throw error;
