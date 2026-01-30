@@ -21,7 +21,7 @@ export function BannerCarousel({ banners }: HeroCarouselProps) {
     }
 
     return (
-        <section className="relative w-full overflow-hidden bg-muted">
+        <section className="relative w-full overflow-hidden bg-muted mt-[60px]">
             <Carousel
                 opts={{
                     align: "start",
@@ -43,7 +43,7 @@ export function BannerCarousel({ banners }: HeroCarouselProps) {
                                     src={banner.settings!.url}
                                     alt={banner.name}
                                     fill
-                                    className="object-contain"
+                                    className="object-cover"
                                     priority
                                     sizes="100vw"
                                 />

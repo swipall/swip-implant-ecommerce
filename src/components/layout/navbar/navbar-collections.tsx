@@ -11,7 +11,7 @@ import { cacheLife } from 'next/cache';
 export async function NavbarCollections() {
     "use cache";
     cacheLife('days');
-    const params = { parent__slug: 'menu-principal' }
+    const params = { parent__slug: 'menu-principal', ordering: 'ordering' }
     const taxonomies = await getPosts(params);
     
     return (
@@ -19,7 +19,7 @@ export async function NavbarCollections() {
             <NavigationMenuList>
                 {taxonomies.results.map((collection: CmsPost) => (
                     <NavigationMenuItem key={collection.slug}>
-                        <NavbarLink href={`/collection/${collection.slug}`}>
+                        <NavbarLink href={collection.link || `/collection/${collection.slug}`}>
                             {collection.title}
                         </NavbarLink>
                     </NavigationMenuItem>
