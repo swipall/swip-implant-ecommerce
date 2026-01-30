@@ -25,7 +25,7 @@ export function ProductsSection({ banners }: HeroCarouselProps) {
                         <div className="space-y-3 bg-card px-4 py-6 rounded-xl shadow-sm flex">
                             <div className="p-4 text-center">
                                 <Image
-                                    src="https://mmcbv4.b-cdn.net/implant-labs/implant-alfa.jpg"
+                                    src="https://mmcb.b-cdn.net/media/attachments/6/5/8/5/eb058c9e13a8a2f4bab1351c09b979dda78fa2939727ff1262edb6e2cd69/implant-labs.jpg"
                                     width={700}
                                     height={700}
                                     className="m-auto rounded-xl"
@@ -46,8 +46,8 @@ export function ProductsSection({ banners }: HeroCarouselProps) {
                         <div className="space-y-3 bg-card px-4 py-6 rounded-xl shadow-sm flex hidden">
                             <div className="p-4 text-center">
                                 <Image
-                                    src="https://mmcbv4.b-cdn.net/implant-labs/implant-alfa.jpg"
-                                    width={700}
+                                    src="https://mmcb.b-cdn.net/media/attachments/6/5/8/5/eb058c9e13a8a2f4bab1351c09b979dda78fa2939727ff1262edb6e2cd69/implant-labs.jpg"
+                                    width={700} 
                                     height={700}
                                     className="m-auto rounded-xl"
                                     alt="Implant Alfa Platinum"
