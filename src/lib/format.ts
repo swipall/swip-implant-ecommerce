@@ -21,5 +21,5 @@ export function formatDate(dateString: string, format: DateFormat = 'short'): st
         ? { year: 'numeric', month: 'long', day: 'numeric' }
         : { year: 'numeric', month: 'short', day: 'numeric' };
 
-    return new Date(dateString).toLocaleDateString('en-US', options);
+    return new Date(dateString).toLocaleDateString('es-MX', options);
 }

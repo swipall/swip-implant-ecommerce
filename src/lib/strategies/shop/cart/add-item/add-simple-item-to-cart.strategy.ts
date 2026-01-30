@@ -1,6 +1,7 @@
 
 import useShopModel from "@/lib/models/shop.model";
-import { AddItemToCartParams, InterfaceApiDetailResponse, InterfaceInventoryItem, ShopCartItem } from "@/lib/swipall/types/types";
+import { AddProductToCartBody } from "@/lib/swipall/rest-adapter";
+import { InterfaceApiDetailResponse, InterfaceInventoryItem, ShopCartItem } from "@/lib/swipall/types/types";
 import { AddItemToCartStrategy } from "./add-item-strategy.interface";
 
 /**
@@ -16,7 +17,7 @@ export class AddSimpleItemToCartStrategy implements AddItemToCartStrategy {
         this.shopModel = shopModel;
     }
     
-    async addItemToCart(cartId: string, itemId: string, body: AddItemToCartParams): Promise<InterfaceApiDetailResponse<ShopCartItem>> {
+    async addItemToCart(cartId: string, itemId: string, body: AddProductToCartBody): Promise<InterfaceApiDetailResponse<ShopCartItem>> {
         // Verificar si el item ya existe en el carrito
         const result = await this.shopModel.checkIfItemExistsInCart(itemId);
         

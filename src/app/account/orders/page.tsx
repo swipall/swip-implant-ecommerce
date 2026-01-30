@@ -1,8 +1,9 @@
 import type {Metadata} from 'next';
 import { getCustomerOrders } from '@/lib/swipall/rest-adapter';
+import { getAuthToken } from '@/lib/auth';
 
 export const metadata: Metadata = {
-    title: 'My Orders',
+    title: 'Mis Órdenes',
 };
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from '@/components/ui/table';
 import {
@@ -17,39 +18,45 @@ import {
 import {ArrowRightIcon} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Price} from '@/components/commerce/price';
-import {OrderStatusBadge} from '@/components/commerce/order-status-badge';
 import {formatDate} from '@/lib/format';
 import Link from "next/link";
 import {redirect} from "next/navigation";
+import OrderIsPaidComponent from '@/components/commerce/order-is-paid';
+import OrderStatusComponent from '@/components/commerce/order-status';
 
 const ITEMS_PER_PAGE = 10;
 
 export default async function OrdersPage(props: PageProps<'/account/orders'>) {
+    // Verificar autenticación
+    const authToken = await getAuthToken();
+    if (!authToken) {
+        redirect('/sign-in');
+    }
+
     const searchParams = await props.searchParams;
     const pageParam = searchParams.page;
     const currentPage = parseInt(Array.isArray(pageParam) ? pageParam[0] : pageParam || '1', 10);
-    const skip = (currentPage - 1) * ITEMS_PER_PAGE;
+    const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
-    const result = await getCustomerOrders({
-        take: ITEMS_PER_PAGE,
-        skip,
-    });
+    const result = await getCustomerOrders(
+        {
+            limit: ITEMS_PER_PAGE,
+            offset,
+        },
+        { useAuthToken: true }
+    );
 
-    if (!result.results || result.results.length === 0) {
-        return redirect('/sign-in');
-    }
-
-    const orders = result.results;
+    const orders = result.results || [];
     const totalItems = result.count || 0;
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-6">My Orders</h1>
+            <h1 className="text-3xl font-bold mb-6">Mis Pedidos</h1>
 
             {orders.length === 0 ? (
                 <div className="text-center py-12">
-                    <p className="text-gray-500">You haven&apos;t placed any orders yet.</p>
+                    <p className="text-muted-foreground">Aún no has realizado ningún pedido.</p>
                 </div>
             ) : (
                 <>
@@ -57,10 +64,10 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                         <Table>
                             <TableHeader className="bg-muted">
                                 <TableRow>
-                                    <TableHead>Order Number</TableHead>
-                                    {/* Date column removed due to REST schema */}
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Items</TableHead>
+                                    <TableHead>Número de Pedido</TableHead>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                    <TableHead>Pagado</TableHead>
                                     <TableHead className="text-right">Total</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -70,22 +77,23 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                                         <TableCell className="font-medium">
                                             <Button asChild variant="outline">
                                                 <Link
-                                                    href={`/account/orders/${order.code}`}
+                                                    href={`/account/orders/${order.id}`}
                                                 >
-                                                    {order.code} <ArrowRightIcon/>
+                                                    {order.folio} <ArrowRightIcon className="ml-2 h-4 w-4"/>
                                                 </Link>
                                             </Button>
                                         </TableCell>
-                                        {/* Created date not available in REST response */}
-                                        <TableCell>
-                                            <OrderStatusBadge state={order.state}/>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {formatDate(order.created_at)}
                                         </TableCell>
                                         <TableCell>
-                                            {order.lines.length}{' '}
-                                            {order.lines.length === 1 ? 'item' : 'items'}
+                                            <OrderStatusComponent className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-muted text-foreground" status={order.status} />
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <Price value={order.totalWithTax} />
+                                        <TableCell>
+                                            <OrderIsPaidComponent className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-muted text-foreground" isPaid={order.is_paid} />
+                                        </TableCell>
+                                        <TableCell className="text-right font-medium">
+                                            <Price value={parseFloat(order.grand_total)} currencyCode="MXN"/>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -94,7 +102,7 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                     </div>
 
                     {totalPages > 1 && (
-                        <div className="mt-6">
+                        <div className="mt-8">
                             <Pagination>
                                 <PaginationContent>
                                     <PaginationItem>
@@ -106,8 +114,8 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                                             }
                                             className={
                                                 currentPage === 1
-                                                    ? 'pointer-events-none opacity-50'
-                                                    : ''
+                                                    ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                                    : 'cursor-pointer'
                                             }
                                         />
                                     </PaginationItem>
@@ -153,8 +161,8 @@ export default async function OrdersPage(props: PageProps<'/account/orders'>) {
                                             }
                                             className={
                                                 currentPage === totalPages
-                                                    ? 'pointer-events-none opacity-50'
-                                                    : ''
+                                                    ? 'pointer-events-none opacity-50 cursor-not-allowed'
+                                                    : 'cursor-pointer'
                                             }
                                         />
                                     </PaginationItem>

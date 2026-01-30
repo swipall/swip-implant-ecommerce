@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import type { Order } from '@/lib/swipall/rest-adapter';
 import { Tag } from 'lucide-react';
 import { applyPromotionCode } from './actions';
+import { Order } from '@/lib/swipall/types/types';
 
 export async function PromotionCode({activeOrder}: { activeOrder: Order }) {
     return (
@@ -11,10 +11,10 @@ export async function PromotionCode({activeOrder}: { activeOrder: Order }) {
             <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                     <Tag className="h-5 w-5"/>
-                    Promotion Code
+                    Código de promoción
                 </CardTitle>
                 <CardDescription>
-                    Enter your discount code below
+                    Ingresa tu código de descuento abajo
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -26,7 +26,7 @@ export async function PromotionCode({activeOrder}: { activeOrder: Order }) {
                         className="flex-1"
                         required
                     />
-                    <Button type="submit">Apply</Button>
+                    <Button type="submit">Aplicar</Button>
                 </form>
             </CardContent>
         </Card>

@@ -3,8 +3,7 @@
 import useShopModel from '@/lib/models/shop.model';
 import { AddItemStrategyFactory } from '@/lib/strategies/shop/cart/add-item/add-item-strategy.factory';
 import { fetchCompoundMaterials, getGroupVariantByTaxonomies } from '@/lib/swipall/inventory';
-import { getProduct } from '@/lib/swipall/rest-adapter';
-import { AddItemToCartParams } from '@/lib/swipall/types/types';
+import { AddProductToCartBody, getProduct, testCreatePosCart } from '@/lib/swipall/rest-adapter';
 import { updateTag } from 'next/cache';
 
 export { getGroupVariantByTaxonomies };
@@ -17,17 +16,15 @@ export { getGroupVariantByTaxonomies };
  */
 export async function addToCart(
     itemId: string,
-    params: AddItemToCartParams
+    params: AddProductToCartBody
 ) {
-    try {
+    try {        
         const shopModel = useShopModel();
         let cartId = await shopModel.getCurrentCartId();
         if (!cartId) {
             const newCart = await shopModel.onCreateNewCart();
             cartId = newCart.id;
         }
-
-
         const product = await getProduct(itemId);        
         const strategyFactory = new AddItemStrategyFactory(shopModel);
         const strategy = strategyFactory.getStrategy(product);
@@ -36,7 +33,7 @@ export async function addToCart(
         updateTag('active-order');
 
         return { success: true, data: result.data };
-    } catch (error: unknown) {
+    } catch (error: any) {
         const message = error instanceof Error ? error.message : 'Failed to add item to cart';
         console.error('Error adding item to cart:', error);
         return { success: false, error: message };
@@ -56,6 +53,16 @@ export async function getCompoundMaterials(itemId: string, params?: any) {
     try {
         const res = await fetchCompoundMaterials(itemId, params, true);// this always require auth token
         return res;
+    } catch (error: unknown) {
+        throw error;
+    }
+}
+
+//TODO: Remove this after testing
+export async function testApiMiddleWare() {
+    try {
+        const product = await testCreatePosCart({ store: 'store_123', customer: 'customer_456' });
+        return product;
     } catch (error: unknown) {
         throw error;
     }

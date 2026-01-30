@@ -1,4 +1,5 @@
-import { getTaxonomies, TaxonomyInterface } from '@/lib/swipall/rest-adapter';
+import { getTaxonomies } from '@/lib/swipall/rest-adapter';
+import { TaxonomyInterface } from '@/lib/swipall/types/types';
 import { cacheLife } from 'next/cache';
 import Image from "next/image";
 import Link from "next/link";
@@ -15,14 +16,23 @@ async function Copyright() {
     )
 }
 
+async function fetchFooterCollections() {
+    try {
+        const params = {
+            kind: 'family',
+            is_visible_on_web: true,
+        }
+        return await getTaxonomies(params);
+    } catch (error) {
+        return { results: [], count: 0, next: null, previous: null };
+    }
+
+}
+
 export async function Footer() {
     'use cache'
     cacheLife('days');
-    const params = {
-        kind: 'family',
-        is_visible_on_web: true,
-    }
-    const collections = await getTaxonomies(params);
+    const collections = await fetchFooterCollections();
 
     return (
         <footer className="border-t border-border mt-auto">
