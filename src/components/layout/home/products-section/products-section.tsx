@@ -1,8 +1,8 @@
 import { getCatalogs } from "@/lib/swipall/cached";
 import { cacheLife } from "next/cache";
-import { BannerCarousel } from "../carousel";
+import { ProductsSection } from "./products";
 
-export async function FeaturedBannersDisplay() {
+export async function ProductsSection() {
     "use cache";
     cacheLife("days");
     
@@ -12,5 +12,5 @@ export async function FeaturedBannersDisplay() {
     const collections = await getCatalogs(params);
     const banners = collections.results.filter((banner) => banner.settings?.url);
 
-    return <BannerCarousel banners={banners} />;
+    return <ProductsSection />;
 }

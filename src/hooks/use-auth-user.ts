@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CurrentUser } from '@/lib/swipall/rest-adapter';
 import { getAuthUser, removeAuthUser, AUTH_USER_CHANGED_EVENT } from '@/lib/auth-client';
+import { CurrentUser } from '@/lib/swipall/types/types';
 
 /**
  * Hook to get the authenticated user from localStorage

@@ -10,7 +10,7 @@ async function Copyright() {
 
     return (
         <div>
-            © {new Date().getFullYear()} Vendure Store. All rights reserved.
+            © {new Date().getFullYear()} Implant Labs. Todos los derechos reservados.
         </div>
     )
 }
@@ -27,7 +27,7 @@ export async function Footer() {
     return (
         <footer className="border-t border-border mt-auto">
             <div className="container mx-auto px-4 py-12">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 hidden">
                     <div>
                         <p className="text-sm font-semibold mb-4 uppercase tracking-wider">
                             Vendure Store
@@ -89,7 +89,7 @@ export async function Footer() {
 
                 {/* Bottom Section */}
                 <div
-                    className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+                    className="mt-12 border-border flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
                     <Copyright />
                     <div className="flex items-center gap-2">
                         <span>Powered by</span>
@@ -99,7 +99,7 @@ export async function Footer() {
                             rel="noopener noreferrer"
                             className="hover:text-foreground transition-colors"
                         >
-                            <Image src="/swipall-icon.svg" alt="Swipall" width={40} height={27} className="h-4 w-auto dark:invert" />
+                            <Image src="https://cloud.swipall.io/assets/images/logo/swipall.svg" alt="Swipall" width={40} height={27} className="h-6 w-auto dark:invert" />
                         </a>
                     </div>
                 </div>

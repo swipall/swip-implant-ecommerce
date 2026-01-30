@@ -1,75 +1,180 @@
 'use client';
 
-import {useState, useMemo, useTransition, useEffect} from 'react';
-import {usePathname, useRouter, useSearchParams} from 'next/navigation';
-import {Button} from '@/components/ui/button';
-import {Label} from '@/components/ui/label';
-import {RadioGroup, RadioGroupItem} from '@/components/ui/radio-group';
-import {ShoppingCart, CheckCircle2} from 'lucide-react';
-import {addToCart, getGroupVariants as loadGroupVariants} from '@/app/product/[id]/actions';
-import {toast} from 'sonner';
-import {Price} from '@/components/commerce/price';
-import { InterfaceInventoryItem, ProductVariant } from '@/lib/swipall/types';
+import { addToCart, getGroupVariant } from '@/app/product/[id]/actions';
+import { Price } from '@/components/commerce/price';
+import { Button } from '@/components/ui/button';
+import { InterfaceInventoryItem, Material, ProductKind, ProductVariant, VariantOption } from '@/lib/swipall/types/types';
+import { CheckCircle2, ShoppingCart } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { toast } from 'sonner';
+import ProductVariants from './product-variants';
+import CompoundMaterialsSelector from './compound-materials-selector';
 
 interface ProductInfoProps {
     product: InterfaceInventoryItem;
     searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export function ProductInfo({product, searchParams}: ProductInfoProps) {
-    const pathname = usePathname();
+export type ExtraMaterialsInterface = {
+    taxonomy: string;
+    materials: Material[]
+}[];
+
+export function ProductInfo({ product, searchParams }: ProductInfoProps) {
     const router = useRouter();
     const currentSearchParams = useSearchParams();
+    const redirectTo = currentSearchParams?.get('redirectTo') as string | undefined;
     const [isPending, startTransition] = useTransition();
     const [isAdded, setIsAdded] = useState(false);
+    const [itemPrice, setItemPrice] = useState<number>(product.web_price ? parseFloat(product.web_price) : 0);
+    // States for selected variant and attributes when product is of 'group' kind
+    const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+    const [variants, setVariants] = useState<VariantOption[]>([]);
+    const [selectedSizeId, setSelectedSizeId] = useState<string>('');
+    const [selectedColorId, setSelectedColorId] = useState<string>('');
+    //States for selected materiales when product is of 'compound' kind
+    const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
+    
+    const materialIdToTaxonomy = useMemo(() => {
+        const map = new Map<string, string>();
+        product.extra_materials?.forEach(group => {
+            group.materials.forEach((m: Material) => {
+                map.set(m.id, group.taxonomy);
+            });
+        });
+        return map;
+    }, [product.extra_materials]);
 
-    // Variants state (only for group kind)
-    const [variants, setVariants] = useState<ProductVariant[]>([]);
-    const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+    const generateVariantLabel = (kind: string) => {
+        if (kind === 'size') return 'Tamaño';
+        if (kind === 'color') return 'Color';
+        return kind.charAt(0).toUpperCase() + kind.slice(1);
+    }
+
+    const formatVariants = (product: InterfaceInventoryItem) => {
+        let variantsArray: VariantOption[] = [];
+
+        product.attribute_combinations?.forEach((attr) => {
+            const existingVariant = variantsArray.find(v => v.kind === attr.kind);
+            if (existingVariant) {
+                existingVariant.values.push({
+                    key: attr.id,
+                    name: attr.name,
+                    value: attr.value
+                });
+            } else {
+                variantsArray.push({
+                    label: generateVariantLabel(attr.kind),
+                    kind: attr.kind,
+                    values: [{
+                        key: attr.id,
+                        name: attr.name,
+                        value: attr.value
+                    }]
+                });
+            }
+        });
+        setVariants(variantsArray);
+    }
 
     useEffect(() => {
-        console.log(product);
-        
-        // Only load variants for 'group' kind
-        if (product.kind === 'group') {
-            startTransition(async () => {
-                const res = await loadGroupVariants(product.id);
-                if (res?.success) {
-                    setVariants(res.variants || []);
-                    setSelectedVariantId(res.variants?.[0]?.id || null);
-                } else {
-                    toast.error('Error', { description: res?.error || 'Error al cargar las variantes' });
+        if (product.kind === ProductKind.Group) {
+            formatVariants(product);
+        }
+    }, [product]);
+
+    useEffect(() => {
+        const fetchVariant = async () => {
+            if (selectedColorId && selectedSizeId) {
+                try {
+                    const params = {
+                        color: selectedColorId,
+                        size: selectedSizeId
+                    };
+                    const variant: ProductVariant = await getGroupVariant(product.id, params);
+                    setSelectedVariant(variant);
+                    setItemPrice(parseFloat(variant.web_price));
+                } catch (error) {
+                    console.error('Error fetching variant:', error);
+                    toast.error('Error', {
+                        description: 'No se pudo cargar la variante seleccionada',
+                    });
                 }
-            });
-        } else {
-            // For 'product' and 'compound' kinds, clear variants
-            setVariants([]);
-            setSelectedVariantId(null);
-        }
-    }, [product.id, product.kind]);
+            }
+        };
 
-    // Selected variant by id
-    const selectedVariant = useMemo(() => {
-        if (selectedVariantId) {
-            return variants.find(v => v.id === selectedVariantId) || null;
-        }
-        return variants.length === 1 ? variants[0] : null;
-    }, [variants, selectedVariantId]);
+        fetchVariant();
+    }, [selectedColorId, selectedSizeId, product.id]);
 
-    const handleVariantChange = (variantId: string) => {
-        setSelectedVariantId(variantId);
-    };
+    const handleAttributeChange = useCallback((kind: string, valueId: string) => {
+        if (kind === 'size') {
+            setSelectedSizeId(valueId);
+        } else if (kind === 'color') {
+            setSelectedColorId(valueId);
+        }
+    }, []);
+
+    const getSelectedMaterialFromTaxonomy = useCallback((taxonomyName: string): Material | undefined => {
+        return selectedMaterials.find(sm => materialIdToTaxonomy.get(sm.id) === taxonomyName);
+    }, [selectedMaterials, materialIdToTaxonomy]);
+
+    const onRemoveMaterial = useCallback((materialId: string) => {
+        const materialToRemove = selectedMaterials.find(m => m.id === materialId);
+        if (materialToRemove) {
+            setItemPrice(prev => prev - (parseFloat(materialToRemove.price) || 0));
+        }
+        setSelectedMaterials(prev => prev.filter(m => m.id !== materialId));
+    }, [selectedMaterials]);
+
+    const onSelectMaterial = useCallback((material: Material) => {
+        const materialTaxonomy = materialIdToTaxonomy.get(material.id);
+
+        if (materialTaxonomy) {
+            const existingMaterial = getSelectedMaterialFromTaxonomy(materialTaxonomy);
+            if (existingMaterial) {
+                setItemPrice(prev => prev - (parseFloat(existingMaterial.price) || 0));
+                setSelectedMaterials(prev => prev.filter(m => m.id !== existingMaterial.id));
+            }
+        }
+
+        setItemPrice(prev => prev + (parseFloat(material.price) || 0));
+        setSelectedMaterials(prev => [...prev, material]);
+    }, [materialIdToTaxonomy, getSelectedMaterialFromTaxonomy]);
 
     const handleAddToCart = async () => {
         // For 'group' kind, require a selected variant
-        if (product.kind === 'group' && !selectedVariant) return;
+        if (product.kind === ProductKind.Group && !selectedVariant) {
+            toast.error('Error', {
+                description: 'Por favor selecciona color y tamaño',
+            });
+            return;
+        }
         
-        // For 'group' kind use the variant ID, otherwise use the product ID
-        const itemId = product.kind === 'group' ? selectedVariant?.id : product.id;
+        if (product.kind === ProductKind.Compound) {
+            // if the user is not logged in, redirect to login page
+            if (!redirectTo) {
+                toast.error('Error', {
+                    description: 'Por favor inicia sesión para agregar productos compuestos',
+                });
+                router.push(`/sign-in?redirectTo=/product/${product.id}`);
+                return;
+            }
+        }
+        
+        // Determine item ID: for groups use variant ID, otherwise use product ID
+        const itemId = product.kind === ProductKind.Group ? selectedVariant?.id : product.id;
         if (!itemId) return;
 
         startTransition(async () => {
-            const result = await addToCart(itemId, 1);
+            // Prepare parameters based on product kind
+            const addToCartParams = {
+                quantity: 1,
+                extra_materials: product.kind === ProductKind.Compound ? selectedMaterials.map(m => m.id) : [],
+                price: itemPrice
+            };
+
+            const result = await addToCart(itemId, addToCartParams);
 
             if (result.success) {
                 setIsAdded(true);
@@ -87,63 +192,51 @@ export function ProductInfo({product, searchParams}: ProductInfoProps) {
         });
     };
 
-    const isInStock = product.kind === 'group' 
-        ? (selectedVariant?.available.quantity ?? 0) > 0 
-        : (product.available.quantity ?? 0) > 0;
-    const canAddToCart = product.kind === 'group' 
-        ? !!selectedVariant && isInStock 
-        : isInStock;
+    const isInStock = useMemo(() => 
+        product.kind === ProductKind.Group
+            ? (selectedVariant?.available?.quantity ?? 0) > 0
+            : (product.available?.quantity ?? 0) > 0
+    , [product.kind, product.available?.quantity, selectedVariant?.available?.quantity]);
+
+    const availableQuantity = useMemo(() => 
+        product.kind === ProductKind.Group
+            ? selectedVariant?.available?.quantity ?? 0
+            : product.available?.quantity ?? 0
+    , [product.kind, product.available?.quantity, selectedVariant?.available?.quantity]);
+
+    const canAddToCart = useMemo(() => 
+        product.kind === ProductKind.Group
+            ? !!selectedVariant && isInStock
+            : isInStock
+    , [product.kind, selectedVariant, isInStock]);
 
     return (
         <div className="space-y-6">
             {/* Product Title */}
             <div>
-                <h1 className="text-3xl font-bold">{product.name}</h1>
                 <p className="text-2xl font-bold mt-2">
-                    <Price value={product.kind === 'group' ? selectedVariant?.web_price : product.web_price}/>
+                    <Price value={itemPrice || 0} />
                 </p>
             </div>
 
             {/* Product Description */}
             <div className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{__html: product.description}}/>
+                <div dangerouslySetInnerHTML={{ __html: product.description || '' }} />
             </div>
 
             {/* Variants Selection - only for group kind */}
-            {product.kind === 'group' && variants.length > 0 && (
-                <div className="space-y-4">
-                    <Label className="text-base font-semibold">
-                        Variantes
-                    </Label>
-                    <RadioGroup
-                        value={selectedVariantId || ''}
-                        onValueChange={(value) => handleVariantChange(value)}
-                    >
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {variants.map((variant) => (
-                                <div key={variant.id}>
-                                    <RadioGroupItem
-                                        value={variant.id}
-                                        id={variant.id}
-                                        className="peer sr-only"
-                                    />
-                                    <Label
-                                        htmlFor={variant.id}
-                                        className="flex items-center justify-center rounded-md border-2 border-muted bg-popover px-4 py-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary cursor-pointer transition-colors"
-                                    >
-                                        {variant.name}
-                                    </Label>
-                                </div>
-                            ))}
-                        </div>
-                    </RadioGroup>
-                </div>
+            {product.kind === ProductKind.Group && variants.length > 0 && (
+                <ProductVariants variants={variants} handleAttributeChange={handleAttributeChange} selectedSizeId={selectedSizeId} selectedColorId={selectedColorId} />
+            )}
+
+            {product.kind === ProductKind.Compound && product.extra_materials && product.extra_materials.length > 0 && (
+                <CompoundMaterialsSelector extraMaterials={product.extra_materials} selectedMaterials={selectedMaterials} onSelectMaterial={onSelectMaterial} onRemoveMaterial={onRemoveMaterial} />
             )}
 
             {/* Stock Status */}
             <div className="text-sm">
                 {isInStock ? (
-                    <span className="text-green-600 font-medium">Con existencias</span>
+                    <span className="text-green-600 font-medium">{availableQuantity} en existencia</span>
                 ) : (
                     <span className="text-destructive font-medium">Agotado</span>
                 )}
@@ -159,15 +252,15 @@ export function ProductInfo({product, searchParams}: ProductInfoProps) {
                 >
                     {isAdded ? (
                         <>
-                            <CheckCircle2 className="mr-2 h-5 w-5"/>
+                            <CheckCircle2 className="mr-2 h-5 w-5" />
                             Se agregó al carrito
                         </>
                     ) : (
                         <>
-                            <ShoppingCart className="mr-2 h-5 w-5"/>
+                            <ShoppingCart className="mr-2 h-5 w-5" />
                             {isPending
                                 ? 'Agregando...'
-                                : !selectedVariant && variants.length > 0
+                                : !selectedVariant && product.kind === ProductKind.Group && variants.length > 0
                                     ? 'Seleccionar Variante'
                                     : !isInStock
                                         ? 'Agotado'
@@ -178,7 +271,7 @@ export function ProductInfo({product, searchParams}: ProductInfoProps) {
             </div>
 
             {/* SKU */}
-            {product.kind === 'group' ? (
+            {product.kind === ProductKind.Group ? (
                 selectedVariant && (
                     <div className="text-xs text-muted-foreground">
                         SKU: {selectedVariant.sku}

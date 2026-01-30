@@ -7,6 +7,8 @@ import {ThemeSwitcher} from '@/components/layout/navbar/theme-switcher';
 import {Suspense} from "react";
 import {SearchInput} from '@/components/layout/search-input';
 import {SearchInputSkeleton} from '@/components/shared/skeletons/search-input-skeleton';
+import { Button } from "../ui/button";
+import { ShieldCheck } from "lucide-react";
 
 export function Navbar() {
     return (
@@ -15,7 +17,7 @@ export function Navbar() {
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-8">
                         <Link href="/" className="text-xl font-bold">
-                            <Image src="/vendure.svg" alt="Vendure" width={40} height={27} className="h-6 w-auto dark:invert" />
+                            <Image src="https://mmcb.b-cdn.net/media/attachments/6/f/4/3/bcda60aa7acc40fcef96753cc34858982422a775dc82a69047d664825194/logo-implant.png" alt="Implant Labs" width={200} height={100} className="h-10 w-auto dark:invert" />
                         </Link>
                         <nav className="hidden md:flex items-center gap-6">
                             <Suspense>
@@ -24,16 +26,16 @@ export function Navbar() {
                         </nav>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="hidden lg:flex">
+                        <div className="hidden">
                             <Suspense fallback={<SearchInputSkeleton />}>
                                 <SearchInput/>
                             </Suspense>
                         </div>
+                        <a href="" className="bg-black px-4 py-1 rounded-md text-white flex items-center">
+                            <ShieldCheck size={14} className="mr-2"/>
+                            Validar autenticidad
+                        </a>
                         <ThemeSwitcher />
-                        <Suspense>
-                            <NavbarCart/>
-                        </Suspense>
-                        <NavbarUser/>
                     </div>
                 </div>
             </div>

@@ -104,23 +104,34 @@ export interface AddressInterface {
 // Product Types
 // ============================================================================
 
-export interface Product {
-    id: string;
-    name: string;
-    slug: string;
-    description?: string;
-    featuredAsset?: Asset;
-    variants: ProductVariant[];
-    collections?: Collection[];
+export enum ProductKind {
+    Group = 'group',
+    Product = 'product',
+    Compound = 'compound',
+    Service = 'service',
 }
 
+export interface ProductAttribute {
+    id: string;
+    name: string;
+    value: string;
+    meli_settings: null;
+    slug: string;
+    kind: string;
+    ordering: number;
+    icon: string | null;
+    color: string;
+    imagen: string | null;
+    is_visible_on_web: boolean;
+    parent: null;
+}
 export interface InterfaceInventoryItem {
-    attribute_combinations: any[];
+    attribute_combinations: ProductAttribute[];
     available?: InventoryAvailable;
     barcode: string | null;
     featured_image: string | null;
     id: string;
-    kind: 'group' | 'product' | 'compound';
+    kind: ProductKind;
     name: string;
     pictures: InventoryPicture[] | null;
     sku: string;
@@ -132,16 +143,30 @@ export interface InterfaceInventoryItem {
     app_price?: string;
     collections?: Collection[];
     featuredAsset?: Asset;
-    variants?: ProductVariant[];
+    variants?: InterfaceInventoryItem[];
 }
 
 export interface ProductVariant {
     id: string;
+    slug: string;
     name: string;
+    web_price: string;
     sku: string;
-    price: number;
-    priceWithTax: number;
-    stock: number;
+    barcode: string | null;
+    featured_image: string | null;
+    pictures: InventoryPicture[] | null;
+    taxonomy: TaxonomyInterface[];
+    available: InventoryAvailable;
+}
+
+export interface VariantOption {
+    label: string;
+    kind: string;
+    values: {
+        key: string;
+        name: string;
+        value: string;
+    }[]
 }
 
 export interface Asset {
@@ -164,6 +189,38 @@ export interface InventoryAvailable {
 export interface InventoryPicture {
     id: string;
     url: string;
+}
+
+
+export interface Inventory {
+    id: string;
+    warehouse__id: string;
+    warehouse__store__id: string;
+    warehouse__name: string;
+    warehouse__store__name: string;
+    quantity: number;
+    minimum: number;
+    maximum: number;
+}
+
+export interface Material {
+    id: string;
+    barcode: string;
+    sku: string;
+    name: string;
+    cost: string;
+    price: string;
+    inventories: Inventory[];
+}
+
+export interface MaterialItem {
+    id: string;
+    material: Material;
+    created_at: string;
+    updated_at: string;
+    request_selling: boolean;
+    quantity: number;
+    compound: string;
 }
 
 // ============================================================================
@@ -198,6 +255,26 @@ export interface TaxonomyInterface {
     icon?: string;
     color?: string;
     imagen?: string;
+}
+
+// ============================================================================
+// CMS/Content Types
+// ============================================================================
+
+export interface CmsPost {
+    slug: string;
+    title: string;
+    excerpt: string | null;
+    body: string;
+    categories: any[];
+    link: string | null;
+    updated_at: string;
+    featured_image: string | null;
+    ordering: number;
+    author: string | null;
+    modified_by: string | null;
+    version: number;
+    parent: CmsPost | null;
 }
 
 // ============================================================================
@@ -346,4 +423,13 @@ export interface RegisterInput {
     password1: string;
     password2: string;
     username: string;
+}
+
+
+export interface UpdateCartDeliveryInfoBody {
+    for_delivery?: boolean;
+    for_pickup?: boolean;
+    shipment_address?: string | null;
+    status?: 3;
+    external_reference?: string | null;
 }

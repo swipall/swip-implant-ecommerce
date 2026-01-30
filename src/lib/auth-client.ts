@@ -1,6 +1,7 @@
 'use client';
 
-import { CurrentUser } from '@/lib/swipall/rest-adapter';
+import { CurrentUser } from "./swipall/types/types";
+
 
 const AUTH_USER_STORAGE = 'swipall-auth-user';
 const AUTH_USER_EVENT = 'auth-user-changed';
