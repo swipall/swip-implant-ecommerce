@@ -14,6 +14,8 @@ export async function createAddress(address: Partial<AddressInterface>) {
         revalidatePath('/account/addresses');
         return result;
     } catch (error) {
+        console.log(error);
+        
         throw new Error('No se pudo crear la dirección');
     }
 }

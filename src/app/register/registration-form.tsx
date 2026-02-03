@@ -1,13 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { registerAction } from './actions';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import {
     Form,
@@ -17,9 +10,16 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import useZipAutoComplete from '@/lib/use-zip-auto-complete';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { registerAction } from './actions';
 
 function indexSpaceBetween(value: string) {
     return value.search(" ");
@@ -63,6 +63,7 @@ const registrationSchema = z.object({
     state: z.string().min(1, 'El estado es requerido'),
     country: z.string().min(1, 'El país es requerido'),
     mobile: z.string().min(1, 'El teléfono móvil es requerido'),
+    references: z.string().optional(),
 }).refine((data) => data.password1 === data.password2, {
     message: "Las contraseñas no coinciden",
     path: ["password2"],
@@ -128,6 +129,7 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
             formData.append('state', data.state);
             formData.append('country', data.country);
             formData.append('mobile', data.mobile);
+            formData.append('references',data.references || '');
             if (redirectTo) {
                 formData.append('redirectTo', redirectTo);
             }
@@ -445,6 +447,24 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
                                             <Input
                                                 type="tel"
                                                 placeholder="+52 1234567890"
+                                                disabled={isPending}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="references"
+                                render={({ field }) => (
+                                    <FormItem className="mt-4">
+                                        <FormLabel>Referencias</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="text"
+                                                placeholder="Ej. Cerca del parque"
                                                 disabled={isPending}
                                                 {...field}
                                             />

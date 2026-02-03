@@ -10,6 +10,9 @@ export async function createAddress(body: Partial<AddressInterface>, options: { 
     return post<AddressInterface>('/api/v1/shop/me/address/', body, { useAuthToken: options.useAuthToken });
 }
 
-export async function createCustomerInfo(body: Partial<AddressInterface>, options: { useAuthToken: boolean }): Promise<any> {
+export async function createCustomerInfo(body: Partial<AddressInterface>, options: { useAuthToken: boolean }): Promise<{
+    id: string;
+    address: AddressInterface;
+}> {
     return post<any>('/api/v1/shop/customer/info/', body, { useAuthToken: options.useAuthToken });
 }

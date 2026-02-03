@@ -1,7 +1,9 @@
 'use server';
 
-import { registerCustomer } from '@/lib/swipall/rest-adapter';
-import { createAddress, createCustomerInfo } from '@/lib/swipall/users';
+import { setAuthToken } from '@/lib/auth';
+import { setAuthUser } from '@/lib/auth-client';
+import { login, registerCustomer } from '@/lib/swipall/rest-adapter';
+import { createCustomerInfo } from '@/lib/swipall/users';
 import { redirect } from 'next/navigation';
 
 export async function registerAction(prevState: { error?: string } | undefined, formData: FormData) {
@@ -12,7 +14,7 @@ export async function registerAction(prevState: { error?: string } | undefined, 
     const password1 = formData.get('password1') as string;
     const password2 = formData.get('password2') as string;
     const redirectTo = formData.get('redirectTo') as string | null;
-    
+
     // Address fields
     const address = formData.get('address') as string;
     const suburb = formData.get('suburb') as string;
@@ -21,6 +23,7 @@ export async function registerAction(prevState: { error?: string } | undefined, 
     const state = formData.get('state') as string;
     const country = formData.get('country') as string;
     const mobile = formData.get('mobile') as string;
+    const references = formData.get('references') as string;
 
     if (!email || !first_name || !last_name || !password1 || !password2 || !address || !suburb || !postal_code || !city || !state || !mobile) {
         return { error: 'Todos los campos son requeridos' };
@@ -40,30 +43,24 @@ export async function registerAction(prevState: { error?: string } | undefined, 
             password2,
         });
 
-        // Register customer info and address with auth token from the session
-        try {
-            const customerInfo = {
-                receiver: `${first_name} ${last_name}`,
-                address,
-                suburb,
-                postal_code,
-                city,
-                state,
-                country,
-                mobile,
-            };
-            
-            await createCustomerInfo(customerInfo, { useAuthToken: true });
-            await createAddress(customerInfo, { useAuthToken: true });
-        } catch (addressError) {
-            // Log address creation error but don't fail the registration
-            console.error('Error creating customer info/address:', addressError);
-        }
 
+        const customerInfo = {
+            receiver: `${first_name} ${last_name}`,
+            address,
+            suburb,
+            postal_code,
+            city,
+            state,
+            country,
+            mobile,
+            references: references || '',
+        };
+        await logIn({ email, password: password1 });
+        await createCustomerInfo(customerInfo, { useAuthToken: true });
         // Redirect to sign-in
         const signInHref = redirectTo
-            ? `/sign-in?redirectTo=${encodeURIComponent(redirectTo)}`
-            : '/sign-in';
+            ? `${encodeURIComponent(redirectTo)}`
+            : '/';
 
         redirect(signInHref);
     } catch (error: unknown) {
@@ -72,6 +69,25 @@ export async function registerAction(prevState: { error?: string } | undefined, 
             throw error;
         }
         const message = error instanceof Error ? error.message : 'El registro falló';
+        return { error: message };
+    }
+}
+
+async function logIn({ email, password }: { email: string, password: string }) {
+    try {
+        const result = await login({
+            email,
+            password,
+        });
+        // Store the token in a cookie if returned
+        if (result?.access_token) {
+            await setAuthToken(result.access_token);
+            setAuthUser(result.user);
+        } else {
+            return { error: 'No se recibió token de autenticación' };
+        }
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Correo electrónico o contraseña inválidos';
         return { error: message };
     }
 }

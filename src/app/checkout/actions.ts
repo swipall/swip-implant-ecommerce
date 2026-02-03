@@ -36,7 +36,10 @@ export async function setShippingAddress(
     }
 }
 
-export async function registerCustomerInfo(address: Partial<AddressInterface>) {
+export async function registerCustomerInfo(address: Partial<AddressInterface>): Promise<{
+    id: string;
+    address: AddressInterface;
+}> {
     try {
         const result = await createCustomerInfo(address, { useAuthToken: true });
         revalidatePath('/checkout');
@@ -46,7 +49,7 @@ export async function registerCustomerInfo(address: Partial<AddressInterface>) {
     }
 }
 
-export async function createCustomerAddress(address: Partial<AddressInterface>) {
+export async function createCustomerAddress(address: Partial<AddressInterface>): Promise<AddressInterface> {
     try {
         const result = await createAddress(address, { useAuthToken: true });
         revalidatePath('/checkout');
