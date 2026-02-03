@@ -10,7 +10,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import useZipAutoComplete from '@/lib/use-zip-auto-complete';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { createCustomerAddress, registerCustomerInfo, updateShippingAddressForCart } from '../actions';
@@ -33,7 +32,6 @@ interface AddressFormData {
 }
 
 export default function ShippingAddressStep({ onComplete }: ShippingAddressStepProps) {
-  const router = useRouter();
   const { addresses, order } = useCheckout();
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(() => {
     if (order.shipment_address) {
@@ -72,7 +70,6 @@ export default function ShippingAddressStep({ onComplete }: ShippingAddressStepP
       // Update shipping address using server action
       await updateShippingAddressForCart(selectedAddress.id);
 
-      router.refresh();
       onComplete();
     } catch (error) {
       console.error('Error setting address:', error);
@@ -95,7 +92,6 @@ export default function ShippingAddressStep({ onComplete }: ShippingAddressStepP
         await updateShippingAddressForCart(addressData.id);
         setDialogOpen(false);
         reset();
-        router.refresh();
         setSelectedAddressId(addressData.id);
         onComplete();
       }
@@ -203,10 +199,10 @@ export default function ShippingAddressStep({ onComplete }: ShippingAddressStepP
                       </Field>
 
                       <Field className="col-span-2">
-                        <FieldLabel htmlFor="suburb">Localidad/Barrio</FieldLabel>
-                        <Controller
-                          name="suburb"
-                          control={control}
+                      <FieldLabel htmlFor="suburb">Localidad/Barrio</FieldLabel>
+                      <Controller
+                        name="suburb"
+                        control={control}
                           render={({ field }) => (
                             <Select
                               value={field.value}
@@ -230,10 +226,10 @@ export default function ShippingAddressStep({ onComplete }: ShippingAddressStepP
                       </Field>
 
                       <Field>
-                        <FieldLabel htmlFor="city">Ciudad</FieldLabel>
-                        <Controller
-                          name="city"
-                          control={control}
+                      <FieldLabel htmlFor="city">Ciudad</FieldLabel>
+                      <Controller
+                        name="city"
+                        control={control}
                           render={({ field }) => (
                             <Select
                               value={field.value}

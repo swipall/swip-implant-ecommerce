@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { registerAction } from './actions';
@@ -17,6 +17,8 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import useZipAutoComplete from '@/lib/use-zip-auto-complete';
 import Link from 'next/link';
 
 function indexSpaceBetween(value: string) {
@@ -54,6 +56,13 @@ const registrationSchema = z.object({
     last_name: z.string().min(1, 'El apellido es requerido'),
     password1: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
     password2: z.string(),
+    address: z.string().min(1, 'La dirección es requerida'),
+    suburb: z.string().min(1, 'La localidad es requerida'),
+    postal_code: z.string().min(1, 'El código postal es requerido'),
+    city: z.string().min(1, 'La ciudad es requerida'),
+    state: z.string().min(1, 'El estado es requerido'),
+    country: z.string().min(1, 'El país es requerido'),
+    mobile: z.string().min(1, 'El teléfono móvil es requerido'),
 }).refine((data) => data.password1 === data.password2, {
     message: "Las contraseñas no coinciden",
     path: ["password2"],
@@ -78,8 +87,19 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
             last_name: '',
             password1: '',
             password2: '',
+            address: '',
+            suburb: '',
+            postal_code: '',
+            city: '',
+            state: '',
+            country: 'México',
+            mobile: '',
         },
     });
+
+    // Watch postal code changes to auto-complete address fields
+    const postalCode = form.watch('postal_code') || '';
+    const { fetchingZip, states, cities, suburbs } = useZipAutoComplete(postalCode);
 
     const onSubmit = (data: RegistrationFormData) => {
         setServerError(null);
@@ -101,6 +121,13 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
             formData.append('last_name', data.last_name);
             formData.append('password1', data.password1);
             formData.append('password2', data.password2);
+            formData.append('address', data.address);
+            formData.append('suburb', data.suburb);
+            formData.append('postal_code', data.postal_code);
+            formData.append('city', data.city);
+            formData.append('state', data.state);
+            formData.append('country', data.country);
+            formData.append('mobile', data.mobile);
             if (redirectTo) {
                 formData.append('redirectTo', redirectTo);
             }
@@ -254,6 +281,179 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
                                 </FormItem>
                             )}
                         />
+
+                        {/* Address Section */}
+                        <div className="border-t pt-4 mt-4">
+                            <h3 className="font-semibold text-sm mb-4">Información de Dirección</h3>
+                            
+                            <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Dirección *</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="text"
+                                                placeholder="Calle, número"
+                                                disabled={isPending}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="postal_code"
+                                render={({ field }) => (
+                                    <FormItem className="mt-4">
+                                        <FormLabel>Código Postal *</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="text"
+                                                placeholder="12345"
+                                                maxLength={5}
+                                                disabled={isPending}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <div className="grid grid-cols-2 gap-4 mt-4">
+                                <FormField
+                                    control={form.control}
+                                    name="suburb"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Localidad/Barrio *</FormLabel>
+                                            <FormControl>
+                                                <Select
+                                                    value={field.value}
+                                                    onValueChange={field.onChange}
+                                                    disabled={suburbs.length === 0 || fetchingZip || isPending}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={fetchingZip ? "Cargando..." : suburbs.length === 0 ? "Ingresa código postal" : "Selecciona una localidad"} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {suburbs.map((suburb: string, idx: number) => (
+                                                            <SelectItem key={idx} value={suburb}>
+                                                                {suburb}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="city"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Ciudad *</FormLabel>
+                                            <FormControl>
+                                                <Select
+                                                    value={field.value}
+                                                    onValueChange={field.onChange}
+                                                    disabled={cities.length === 0 || fetchingZip || isPending}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={fetchingZip ? "Cargando..." : cities.length === 0 ? "Ingresa código postal" : "Selecciona una ciudad"} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {cities.map((city: string, idx: number) => (
+                                                            <SelectItem key={idx} value={city}>
+                                                                {city}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 mt-4">
+                                <FormField
+                                    control={form.control}
+                                    name="state"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Estado/Provincia *</FormLabel>
+                                            <FormControl>
+                                                <Select
+                                                    value={field.value}
+                                                    onValueChange={field.onChange}
+                                                    disabled={states.length === 0 || fetchingZip || isPending}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={fetchingZip ? "Cargando..." : states.length === 0 ? "Ingresa código postal" : "Selecciona un estado"} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {states.map((state: string, idx: number) => (
+                                                            <SelectItem key={idx} value={state}>
+                                                                {state}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="country"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>País</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="text"
+                                                    placeholder="México"
+                                                    disabled={true}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <FormField
+                                control={form.control}
+                                name="mobile"
+                                render={({ field }) => (
+                                    <FormItem className="mt-4">
+                                        <FormLabel>Teléfono Móvil *</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="tel"
+                                                placeholder="+52 1234567890"
+                                                disabled={isPending}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
 
                         {serverError && (
                             <div className="text-sm text-destructive">

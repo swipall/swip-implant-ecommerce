@@ -20,6 +20,31 @@ interface SwipallResponse<T> {
     errors?: Array<{ message: string;[key: string]: unknown }>;
 }
 
+interface SwipallErrorContext {
+    status?: number;
+    method?: string;
+    endpoint?: string;
+    errorData?: any;
+    message: string;
+}
+
+class SwipallAPIError extends Error {
+    public status?: number;
+    public method?: string;
+    public endpoint?: string;
+    public errorData?: any;
+
+    constructor(context: SwipallErrorContext) {
+        super(context.message);
+        this.name = 'SwipallAPIError';
+        this.status = context.status;
+        this.method = context.method;
+        this.endpoint = context.endpoint;
+        this.errorData = context.errorData;
+        Object.setPrototypeOf(this, SwipallAPIError.prototype);
+    }
+}
+
 /**
  * Extract the Swipall JWT token from response headers (if returned)
  */
@@ -159,8 +184,10 @@ async function request<TResult>(
     try {
         response = await fetch(url, requestInit);
     } catch (fetchError: any) {
-        // Network error or URL not configured - return safe fallback
-        console.warn(`[Swipall API] Fetch failed for ${method} ${endpoint}:`, fetchError?.message);
+        console.error(`[Swipall API] Network error for ${method} ${endpoint}:`, {
+            message: fetchError?.message,
+            cause: fetchError?.cause,
+        });
 
         // Return appropriate empty data based on endpoint pattern
         let emptyData: TResult;
@@ -171,7 +198,6 @@ async function request<TResult>(
             endpoint.includes('/shipping-methods') ||
             endpoint.includes('/payment-methods') ||
             endpoint.includes('/taxonomies')) {
-            // List endpoints - return InterfaceApiListResponse structure
             emptyData = {
                 results: [],
                 count: 0,
@@ -179,26 +205,79 @@ async function request<TResult>(
                 previous: null,
             } as TResult;
         } else {
-            // Detail endpoints - return empty object
             emptyData = {} as TResult;
         }
 
         return emptyData;
     }
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = transformError(errorData) || `API request failed with status ${response.status} for ${method} ${endpoint}`;
-        throw new Error(errorMessage);
+
+    let result: SwipallResponse<TResult>;
+    try {
+        result = await response.json();
+    } catch (parseError: any) {
+        console.error(`[Swipall API] Failed to parse JSON response for ${method} ${endpoint}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            message: parseError?.message,
+        });
+
+        const errorMessage = `Failed to parse API response (HTTP ${response.status}) for ${method} ${endpoint}`;
+        throw new SwipallAPIError({
+            status: response.status,
+            method,
+            endpoint,
+            message: errorMessage,
+            errorData: { statusText: response.statusText },
+        });
     }
 
-    const result: SwipallResponse<TResult> = await response.json();
+    if (!response.ok) {
+        const errorMessage = transformError(result) || `API request failed with status ${response.status} for ${method} ${endpoint}`;
+        console.error(`[Swipall API] Request failed - ${method} ${endpoint}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            error: result.error || result.errors,
+        });
+
+        throw new SwipallAPIError({
+            status: response.status,
+            method,
+            endpoint,
+            message: errorMessage,
+            errorData: result.error || result.errors || {},
+        });
+    }
 
     if (result.error) {
-        throw new Error(result.error.message);
+        const errorMessage = result.error.message || 'Unknown API error';
+        console.error(`[Swipall API] API error response for ${method} ${endpoint}:`, {
+            status: response.status,
+            error: result.error,
+        });
+
+        throw new SwipallAPIError({
+            status: response.status,
+            method,
+            endpoint,
+            message: errorMessage,
+            errorData: result.error,
+        });
     }
 
     if (result.errors && result.errors.length > 0) {
-        throw new Error(result.errors.map(e => e.message).join(', '));
+        const errorMessage = result.errors.map(e => e.message).join(', ');
+        console.error(`[Swipall API] Multiple errors for ${method} ${endpoint}:`, {
+            status: response.status,
+            errors: result.errors,
+        });
+
+        throw new SwipallAPIError({
+            status: response.status,
+            method,
+            endpoint,
+            message: errorMessage,
+            errorData: result.errors,
+        });
     }
 
     // Return the result directly (which is already typed as TResult)
@@ -227,7 +306,9 @@ export async function mutate<TResult>(
     return post<TResult>(endpoint, params, options);
 }
 
-function transformError(error: any): string | null {
+export { SwipallAPIError };
+
+export function transformError(error: any): string | null {
     if (error instanceof Error) {
         return error.message;
     }

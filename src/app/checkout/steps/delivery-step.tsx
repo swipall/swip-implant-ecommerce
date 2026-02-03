@@ -6,7 +6,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Loader2, Truck, Store } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useCheckout } from '../checkout-provider';
 import { updateCartForDelivery, updateCartForPickup } from '../actions';
 
@@ -17,10 +16,9 @@ interface DeliveryStepProps {
 type FulfillmentType = 'delivery' | 'pickup';
 
 export default function DeliveryStep({ onComplete }: DeliveryStepProps) {
-  const router = useRouter();
-  const { order, deliveryItem } = useCheckout();
-  const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>(
-    deliveryItem ? 'delivery' : 'pickup'
+  const { order, deliveryItem, fulfillmentType, setFulfillmentType } = useCheckout();
+  const [localFulfillmentType, setLocalFulfillmentType] = useState<'delivery' | 'pickup'>(
+    fulfillmentType || (order.for_delivery ? 'delivery' : 'pickup')
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,13 +28,14 @@ export default function DeliveryStep({ onComplete }: DeliveryStepProps) {
   const handleContinue = async () => {
     setIsSubmitting(true);
     try {
-      if (fulfillmentType === 'delivery' && hasDeliveryOption && deliveryItem) {
+      if (localFulfillmentType === 'delivery' && hasDeliveryOption && deliveryItem) {
         await updateCartForDelivery(deliveryItem);
+        setFulfillmentType('delivery');
       } else {
         await updateCartForPickup(deliveryItem);
+        setFulfillmentType('pickup');
       }
 
-      router.refresh();
       onComplete();
     } catch (error) {
       console.error('Error setting delivery options:', error);
@@ -49,7 +48,7 @@ export default function DeliveryStep({ onComplete }: DeliveryStepProps) {
     <div className="space-y-6">
       <div>
         <h3 className="font-semibold mb-4">¿Cómo deseas recibir tu pedido?</h3>
-        <RadioGroup value={fulfillmentType} onValueChange={(value) => setFulfillmentType(value as FulfillmentType)}>
+        <RadioGroup value={localFulfillmentType} onValueChange={(value) => setLocalFulfillmentType(value as 'delivery' | 'pickup')}>
           <div className="space-y-3">
             {hasDeliveryOption && (
               <label className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition">

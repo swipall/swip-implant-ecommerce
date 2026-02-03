@@ -149,6 +149,20 @@ export async function searchProducts(input: SearchInput): Promise<SearchResult> 
 // Cart/Order Endpoints
 // ============================================================================
 
+export async function getCurrentCart(options?: { useAuthToken?: boolean, cartId?: string }): Promise<ShopCart | null> {
+    try {
+        const storedCartId = options?.cartId || await getCartId();
+        if (!storedCartId) {
+            return null
+        }
+        const response = await get<ShopCart>(`/api/v1/shop/cart/${storedCartId}`, undefined, { useAuthToken: options?.useAuthToken });
+        return response;
+    } catch (error) {
+        return null;
+    }
+
+}
+
 export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?: string; mutateCookies?: boolean }): Promise<Order | null> {
     const storedCartId = options?.cartId || await getCartId();
     const mutateCookies = options?.mutateCookies === true;
@@ -181,7 +195,6 @@ export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?
         if (mutateCookies) {
             await clearCartId();
         }
-        console.error('[getActiveOrder] Failed to fetch cart:', error);
         return null;
     }
 }

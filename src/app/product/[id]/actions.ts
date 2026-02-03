@@ -25,6 +25,8 @@ export async function addToCart(
             const newCart = await shopModel.onCreateNewCart();
             cartId = newCart.id;
         }
+        console.log('cartId',cartId);
+        
         const product = await getProduct(itemId);        
         const strategyFactory = new AddItemStrategyFactory(shopModel);
         const strategy = strategyFactory.getStrategy(product);
@@ -34,8 +36,13 @@ export async function addToCart(
 
         return { success: true, data: result.data };
     } catch (error: any) {
+        if(error.status === 404){
+            // Clear cartId if item not found
+            const shopModel = useShopModel();
+            await shopModel.removeCurrentCartId();
+            return { success: false, error: 'Ocurrió un error al añadir el producto al carrito, por favor inténtalo de nuevo.' };
+        }        
         const message = error instanceof Error ? error.message : 'Failed to add item to cart';
-        console.error('Error adding item to cart:', error);
         return { success: false, error: message };
     }
 }

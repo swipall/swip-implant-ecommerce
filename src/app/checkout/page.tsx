@@ -27,7 +27,7 @@ export default async function CheckoutPage(_props: PageProps<'/checkout'>) {
         getActiveOrder({ useAuthToken: true, mutateCookies: false }),
         fetchDeliveryItem(),
         fetchAddresses(),
-        setCustomerForOrder(),
+        setCustomerForOrder().catch(() => null),
     ]);
 
     const activeOrder = orderRes;

@@ -10,7 +10,7 @@ import {
 import { InterfaceInventoryItem, ShopCart } from '@/lib/swipall/types/types';
 import { createAddress, createCustomerInfo } from '@/lib/swipall/users';
 import { AddressInterface } from '@/lib/swipall/users/user.types';
-import { revalidatePath, updateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 import { redirect } from "next/navigation";
 
 interface AddressInput {
@@ -87,6 +87,8 @@ const onProcessCardPayment = async () => {
             throw new Error('No cart ID found while processing upon delivery payment');
         }
         const response = await createMpPreference(cartId);
+        console.log('onProcessCardPayment',response);
+        
         if (!response) {
             throw new Error('No se pudo crear la preferencia de pago de Mercado Pago.');
         }
@@ -140,17 +142,20 @@ export const processPayment = async (selectedPaymentMethod: string) => {
     }
 }
 
-export async function setCustomerForOrder(): Promise<ShopCart> {
+export async function setCustomerForOrder(): Promise<ShopCart | null> {
     try {
         const shopModel = useShopModel();
         const cartId = await shopModel.getCurrentCartId();
         if (!cartId) {
-            throw new Error('No cart ID found while updating cart for delivery');
+            console.warn('No cart ID found while setting customer for order');
+            return null;
         }
         const response = await shopModel.onSetCustomerToCart(cartId);
         return response;
     } catch (error: unknown) {
-        throw error;
+        console.warn('Error setting customer for order:', error);
+        // Don't throw - silently fail as this is not critical for checkout
+        return null;
     }
 }
 
@@ -174,9 +179,11 @@ export async function updateCartForDelivery(deliveryServiceItem: InterfaceInvent
         if (!cartId) {
             throw new Error('No cart ID found while updating cart for delivery');
         }
-        return await shopModel.onUpdateCartForDelivery(cartId, deliveryServiceItem);
+        const result = await shopModel.onUpdateCartForDelivery(cartId, deliveryServiceItem);
+        revalidatePath('/checkout');
+        return result;
     } catch (error) {
-        console.error('Error fetching delivery item:', error);
+        console.error('Error updating cart for delivery:', error);
         throw error;
     }
 }
@@ -189,9 +196,11 @@ export async function updateCartForPickup(deliveryServiceItem?: InterfaceInvento
         if (!cartId) {
             throw new Error('No cart ID found while updating cart for pickup');
         }
-        return await shopModel.onUpdateCartForPickup(cartId, deliveryServiceItem as InterfaceInventoryItem);
+        const result = await shopModel.onUpdateCartForPickup(cartId, deliveryServiceItem as InterfaceInventoryItem);
+        revalidatePath('/checkout');
+        return result;
     } catch (error) {
-        console.error('Error fetching delivery item:', error);
+        console.error('Error updating cart for pickup:', error);
         throw error;
     }
 }
