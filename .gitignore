@@ -40,3 +40,5 @@ bun-debug.log*
 next-env.d.ts
 
 *.lock
+
+.github/copilot-instructions.md
