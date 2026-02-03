@@ -60,13 +60,13 @@ export default async function Home(_props: PageProps<'/'>) {
                     </div>
                 </div>
             </section>
-            <section className="bg-red-100 text-center">
+            <section className="bg-red-100 text-center dark:bg-red-950">
                 <div className="container mx-auto px-6 py-8 rounded-md">
-                    <div className="h3 font-bold text-red-700 flex items-center justify-center">
-                        <TriangleAlert size={16} className="text-red-700 mr-2" />
+                    <div className="h3 font-bold text-red-700 dark:text-red-400 flex items-center justify-center">
+                        <TriangleAlert size={16} className="text-red-700 mr-2 dark:text-red-400" />
                         NO CONTAMOS CON REDES SOCIALES OFICIALES
                     </div>
-                    <p>
+                    <p className="text-red-700 dark:text-red-200">
                         No tenemos Facebook, Twitter, Instagram o cualquier otra red Social que exprese la venta o distribución de nuestros productos, esto con el fin de proteger a nuestros consumidores de los posibles productos falsos o piratas que dicen ser de nuestra marca.
                     </p>
                 </div>

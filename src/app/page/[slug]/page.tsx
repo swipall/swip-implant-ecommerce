@@ -12,25 +12,13 @@ import {
     buildCanonicalUrl,
     buildOgImages,
 } from '@/lib/metadata';
+import { title } from 'process';
 
-async function getCollectionProducts(slug: string, searchParams: { [key: string]: string | string[] | undefined }) {
+
+async function getPageMetadata(slug: string) {
     'use cache';
     cacheLife('hours');
-    cacheTag(`collection-${slug}`);
-
-    const params = buildSearchInput({
-        searchParams,
-        taxonomies__slug__and: slug,
-    });
-
-    const results = await searchProducts(params);
-    return results;
-}
-
-async function getCollectionMetadata(slug: string) {
-    'use cache';
-    cacheLife('hours');
-    cacheTag(`collection-meta-${slug}`);
+    cacheTag(`page-meta-${slug}`);
 
     // return await getCollection(slug);
     return { data: {name: '', slug: slug }}
@@ -38,14 +26,14 @@ async function getCollectionMetadata(slug: string) {
 
 export async function generateMetadata({
     params,
-}: PageProps<'/collection/[slug]'>): Promise<Metadata> {
+}: PageProps<'/page/[slug]'>): Promise<Metadata> {
     const { slug } = await params;
-    const result = await getCollectionMetadata(slug);
+    const result = await getPageMetadata(slug);
     const collection = result.data;
 
     if (!collection) {
         return {
-            title: 'Collection Not Found',
+            title: 'Page Not Found',
         };
     }
 
@@ -72,29 +60,15 @@ export async function generateMetadata({
     };
 }
 
-export default async function CollectionPage({ params, searchParams }: PageProps<'/collection/[slug]'>) {
+export default async function Pages({ params, searchParams }: PageProps<'/collection/[slug]'>) {
     const { slug } = await params;
     const searchParamsResolved = await searchParams;
     const page = getCurrentPage(searchParamsResolved);
 
-    const productDataPromise = getCollectionProducts(slug, searchParamsResolved);
-
     return (
         <div className="container mx-auto px-4 py-8 mt-16">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Filters Sidebar */}
-                <aside className="lg:col-span-1">
-                    <Suspense fallback={<div className="h-64 animate-pulse bg-muted rounded-lg" />}>
-                        <FacetFilters productDataPromise={productDataPromise} />
-                    </Suspense>
-                </aside>
-
-                {/* Product Grid */}
-                <div className="lg:col-span-3">
-                    <Suspense fallback={<ProductGridSkeleton />}>
-                        <ProductGrid productDataPromise={productDataPromise} currentPage={page} take={12} />
-                    </Suspense>
-                </div>
+               {title}
             </div>
         </div>
     );
