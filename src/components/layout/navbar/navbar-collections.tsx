@@ -12,13 +12,19 @@ export async function NavbarCollections() {
     "use cache";
     cacheLife('days');
     const params = { parent__slug: 'menu-principal' }
-    const taxonomies = await getPosts(params);    
+    const taxonomies = await getPosts(params);
+    const redirectUrl = (collection: CmsPost) => {
+        if(collection.link){
+            return collection.link;
+        }
+        return `/collection/${collection.slug}`;
+    }    
     return (
         <NavigationMenu>
             <NavigationMenuList>
                 {taxonomies.results.map((collection: CmsPost) => (
                     <NavigationMenuItem key={collection.slug}>
-                        <NavbarLink href={`/collection/${collection.slug}`}>
+                        <NavbarLink href={redirectUrl(collection)}>
                             {collection.title}
                         </NavbarLink>
                     </NavigationMenuItem>
