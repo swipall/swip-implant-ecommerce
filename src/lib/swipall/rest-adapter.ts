@@ -5,6 +5,7 @@ import type {
     AddToCartInput,
     CatalogInterface,
     CatalogsParams,
+    CmsPost,
     Collection,
     CreateAddressInput,
     CurrentUser,
@@ -26,6 +27,8 @@ import type {
     UpdateCustomerInput
 } from './types/types';
 import { OrderDetailInterface, OrderInterface } from './users/user.types';
+
+export type { SearchInput } from './types/types';
 
 
 // ============================================================================
@@ -94,9 +97,17 @@ export async function getCollection(slug: string): Promise<InterfaceApiDetailRes
     return get<InterfaceApiDetailResponse<Collection>>(`/collections/${slug}`);
 }
 
-export async function getPosts(params: any): Promise<InterfaceApiListResponse<any>> {
-    return get<InterfaceApiListResponse<any>>('/api/v1/cms/posts', params);
+export async function getPosts(params: any): Promise<InterfaceApiListResponse<CmsPost>> {
+    return get<InterfaceApiListResponse<CmsPost>>('/api/v1/cms/posts', params);
 }
+
+export async function getPostDetail(slug: string): Promise<CmsPost> {
+    return get<CmsPost>(`/api/v1/cms/post/${slug}`);
+}
+
+// ============================================================================
+// Catalogs & Taxonomies Endpoints
+// ============================================================================
 
 export async function getTaxonomies(params: any): Promise<InterfaceApiListResponse<TaxonomyInterface>> {
     return get<InterfaceApiListResponse<TaxonomyInterface>>('/api/v1/shop/taxonomies', params);
@@ -128,6 +139,8 @@ export async function searchProducts(input: SearchInput): Promise<SearchResult> 
     if (input.offset) params.append('offset', String(input.offset));
     if (input.limit) params.append('limit', String(input.limit));
     if (input.ordering) params.append('ordering', input.ordering);
+    if (input.taxonomy) params.append('taxonomy', input.taxonomy);
+    if (input.taxonomies__slug__and) params.append('taxonomies__slug__and', input.taxonomies__slug__and);
     const endpoint = `/api/v1/shop/items`;
     return get<InterfaceApiListResponse<InterfaceInventoryItem>>(endpoint, params);
 }

@@ -257,7 +257,7 @@ export interface CmsPost {
     title: string;
     excerpt: string | null;
     body: string;
-    categories: any[];
+    categories: { name: string; slug: string }[];
     link: string | null;
     updated_at: string;
     featured_image: string | null;
@@ -269,6 +269,15 @@ export interface CmsPost {
 }
 
 // ============================================================================
+// Banner Slider Types
+// ============================================================================
+
+export interface BannerSliderBody {
+    autoplay?: boolean;
+    duration?: number; // milliseconds, default 5000
+}
+
+// ============================================================================
 // Search Types
 // ============================================================================
 
@@ -277,6 +286,8 @@ export interface SearchInput {
     limit?: number;
     search?: string;
     ordering?: string;
+    taxonomy?: string;
+    taxonomies__slug__and?: string;
 }
 
 // ============================================================================

@@ -12,8 +12,7 @@ export async function NavbarCollections() {
     "use cache";
     cacheLife('days');
     const params = { parent__slug: 'menu-principal' }
-    const taxonomies = await getPosts(params);
-    
+    const taxonomies = await getPosts(params);    
     return (
         <NavigationMenu>
             <NavigationMenuList>
