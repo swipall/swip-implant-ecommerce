@@ -24,9 +24,7 @@ export async function addToCart(
         if (!cartId) {
             const newCart = await shopModel.onCreateNewCart();
             cartId = newCart.id;
-        }
-        console.log('cartId',cartId);
-        
+        }        
         const product = await getProduct(itemId);        
         const strategyFactory = new AddItemStrategyFactory(shopModel);
         const strategy = strategyFactory.getStrategy(product);
