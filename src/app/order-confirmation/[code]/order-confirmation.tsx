@@ -1,21 +1,23 @@
-import {connection} from 'next/server';
+import { connection } from 'next/server';
 import { getOrderDetail } from '@/lib/swipall/rest-adapter';
-import {Button} from '@/components/ui/button';
-import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
-import {CheckCircle2} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {Separator} from '@/components/ui/separator';
-import {Price} from '@/components/commerce/price';
-import {notFound} from "next/navigation";
+import { Separator } from '@/components/ui/separator';
+import { Price } from '@/components/commerce/price';
+import { notFound } from "next/navigation";
 import { OrderDetailInterface } from '@/lib/swipall/users/user.types';
 
-export async function OrderConfirmation({params}: PageProps<'/order-confirmation/[code]'>) {
-    const {code} = await params;
+export async function OrderConfirmation({ params }: PageProps<'/order-confirmation/[code]'>) {
+    const { code } = await params;
     let orderData: OrderDetailInterface | null = null;
 
     try {
-        const result = await getOrderDetail(code);
+        const result = await getOrderDetail(code, { useAuthToken: true });
+        console.log('result', result);
+
         orderData = result;
     }
     catch (error) {
@@ -23,14 +25,14 @@ export async function OrderConfirmation({params}: PageProps<'/order-confirmation
     }
 
     if (!orderData) {
-       notFound();
+        notFound();
     }
 
     return (
         <div className="container mx-auto px-4 py-16">
             <div className="max-w-3xl mx-auto">
                 <div className="text-center mb-8">
-                    <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4"/>
+                    <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
                     <h1 className="text-3xl font-bold mb-2">¡Orden Confirmada!</h1>
                     <p className="text-muted-foreground">
                         Gracias por tu orden. Tu número de pedido es {' '}
@@ -66,51 +68,70 @@ export async function OrderConfirmation({params}: PageProps<'/order-confirmation
                                 </div>
                                 <div className="text-right w-24">
                                     <p className="font-semibold">
-                                        <Price value={parseFloat(item.total)} currencyCode="MXN"/>
+                                        <Price value={parseFloat(item.total)} currencyCode="MXN" />
                                     </p>
                                 </div>
                             </div>
                         ))}
 
-                        <Separator/>
+                        <Separator />
 
                         <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Subtotal</span>
-                                <span><Price value={parseFloat(orderData.sub_total)} currencyCode="MXN"/></span>
+                                <span><Price value={parseFloat(orderData.sub_total)} currencyCode="MXN" /></span>
                             </div>
                             {parseFloat(orderData.discount_total) > 0 && (
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Descuento</span>
-                                    <span>-<Price value={parseFloat(orderData.discount_total)} currencyCode="MXN"/></span>
+                                    <span>-<Price value={parseFloat(orderData.discount_total)} currencyCode="MXN" /></span>
                                 </div>
                             )}
                             {parseFloat(orderData.shipment_total) > 0 && (
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Envío</span>
-                                    <span><Price value={parseFloat(orderData.shipment_total)} currencyCode="MXN"/></span>
+                                    <span><Price value={parseFloat(orderData.shipment_total)} currencyCode="MXN" /></span>
                                 </div>
                             )}
                             {parseFloat(orderData.tax_total) > 0 && (
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Impuestos</span>
-                                    <span><Price value={parseFloat(orderData.tax_total)} currencyCode="MXN"/></span>
+                                    <span><Price value={parseFloat(orderData.tax_total)} currencyCode="MXN" /></span>
                                 </div>
                             )}
                         </div>
 
-                        <Separator/>
+                        <Separator />
 
                         <div className="flex justify-between font-bold text-lg">
                             <span>Total</span>
                             <span>
-                                <Price value={parseFloat(orderData.grand_total)} currencyCode="MXN"/>
+                                <Price value={parseFloat(orderData.grand_total)} currencyCode="MXN" />
                             </span>
                         </div>
                     </CardContent>
                 </Card>
 
-                {orderData.shipment_address && (
+
+                <Card className="mb-6">
+                    <CardHeader>
+                        <CardTitle>Tipo de Entrega</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {orderData.shipment_address ? (
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                                <span className="font-medium">Envío a Domicilio</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                                <span className="font-medium">Recoger en Tienda</span>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+                {orderData.for_delivery && orderData.shipment_address && (
                     <Card className="mb-6">
                         <CardHeader>
                             <CardTitle>Dirección de Envío</CardTitle>
@@ -143,9 +164,12 @@ export async function OrderConfirmation({params}: PageProps<'/order-confirmation
                     </Card>
                 )}
 
-                <div className="flex gap-4">
+                <div className="flex flex-col gap-4">
                     <Button asChild className="flex-1">
                         <Link href="/">Continuar Comprando</Link>
+                    </Button>
+                    <Button asChild variant="secondary" className="flex-1">
+                        <Link href="/account/orders">Ver Mis Pedidos</Link>
                     </Button>
                 </div>
             </div>

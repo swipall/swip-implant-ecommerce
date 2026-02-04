@@ -10,6 +10,10 @@ export default function useShopModel() {
         return cartId || null;
     }
 
+    const cleanCurrentCart = async (): Promise<void> => {
+        clearCartId();
+    }
+
     const removeCurrentCartId = async (): Promise<void> => {
         await clearCartId();
     }
@@ -143,6 +147,7 @@ export default function useShopModel() {
         onUpdateCartForPickup,
         onSetCustomerToCart,
         removeCurrentCartId,
-        updateCartShippingAddress
+        updateCartShippingAddress,
+        cleanCurrentCart
     };
 }

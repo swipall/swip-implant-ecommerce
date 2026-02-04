@@ -1,12 +1,13 @@
+import { ORDER_STATUS } from "@/app/account/orders/types";
 
-export default function OrderStatusComponent({ status, className= "font-medium text-foreground" }: { status: number, className?: string }) {
+export default function OrderStatusComponent({ status, className= "font-medium text-foreground" }: { status: ORDER_STATUS, className?: string }) {
 
-    const getStatusText = (status: number) => {
+    const getStatusText = (status: ORDER_STATUS) => {
         switch (status) {
-            case 0: return "Pendiente";
-            case 1: return "En proceso";
-            case 2: return "Completado";
-            case 3: return "Cancelado";
+            case ORDER_STATUS.COMPLETE: return "Completado";
+            case ORDER_STATUS.CANCELED: return "Cancelado";
+            case ORDER_STATUS.INVOICED: return "Facturado";
+            case ORDER_STATUS.SCHEDULED: return "Programado";
             default: return "Desconocido";
         }
     };

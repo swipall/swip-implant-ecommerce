@@ -19,3 +19,10 @@ export enum OrderPaymentType {
     all = 'all',
     mixed = 'mixed'
 }
+
+export enum ORDER_STATUS {
+    COMPLETE = 0,
+    CANCELED = 1,
+    INVOICED = 2,
+    SCHEDULED = 3,
+}

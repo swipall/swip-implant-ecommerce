@@ -260,8 +260,8 @@ export const fetchDeliveryItem = async (): Promise<InterfaceApiListResponse<Inte
     return get<InterfaceApiListResponse<InterfaceInventoryItem>>(uri, params);
 }
 
-export const updateCartDeliveryInfo = async (cartId: string, body: UpdateCartDeliveryInfoBody): Promise<InterfaceApiDetailResponse<ShopCart>> => {
-    return patch<InterfaceApiDetailResponse<ShopCart>>(`/api/v1/shop/cart/${cartId}/set/shipping/`, body);
+export const updateCartDeliveryInfo = async (cartId: string, body: UpdateCartDeliveryInfoBody, options?: { useAuthToken?: boolean }): Promise<InterfaceApiDetailResponse<ShopCart>> => {
+    return patch<InterfaceApiDetailResponse<ShopCart>>(`/api/v1/shop/cart/${cartId}/set/shipping/`, body, { useAuthToken: options?.useAuthToken });
 }
 
 export const setCustomerToCart = async (cartId: string): Promise<ShopCart> => {

@@ -23,6 +23,8 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
     const isForDelivery = order.for_delivery;
     const isForPickup = order.for_pickup;
     const handlePlaceOrder = async () => {
+        console.log('handlePlaceOrder');
+        
         if (!selectedPaymentMethodCode) return;
 
         setLoading(true);

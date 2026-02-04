@@ -1,19 +1,18 @@
 'use client';
 
-import { useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import ContactStep from './steps/contact-step';
-import ShippingAddressStep from './steps/shipping-address-step';
+import { useState } from 'react';
+import { useCheckout } from './checkout-provider';
+import OrderSummary from './order-summary';
 import DeliveryStep from './steps/delivery-step';
 import PaymentStep from './steps/payment-step';
 import ReviewStep from './steps/review-step';
-import OrderSummary from './order-summary';
-import { useCheckout } from './checkout-provider';
+import ShippingAddressStep from './steps/shipping-address-step';
 
 type CheckoutStep = 'contact' | 'shipping' | 'delivery' | 'payment' | 'review';
 
 export default function CheckoutFlow() {
-    const { order, fulfillmentType } = useCheckout();
+    const { fulfillmentType } = useCheckout();   
 
     const getStepOrder = (): CheckoutStep[] => {
         // If pickup is selected, skip shipping address
@@ -28,19 +27,6 @@ export default function CheckoutFlow() {
     const getInitialState = () => {
         const completed = new Set<CheckoutStep>();
         let current: CheckoutStep = stepOrder[0];
-
-        // if (order.shipment_address?. && order.shipment_address?.country) {
-        //     completed.add('shipping');
-        //     current = 'delivery';
-        // }
-
-        // if (order.shippingLines && order.shippingLines.length > 0) {
-        //     if (completed.has('shipping')) {
-        //         completed.add('delivery');
-        //         current = 'payment';
-        //     }
-        // }
-
         return { completed, current };
     };
 

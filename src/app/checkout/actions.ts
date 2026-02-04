@@ -90,8 +90,6 @@ const onProcessCardPayment = async () => {
             throw new Error('No cart ID found while processing upon delivery payment');
         }
         const response = await createMpPreference(cartId);
-        console.log('onProcessCardPayment',response);
-        
         if (!response) {
             throw new Error('No se pudo crear la preferencia de pago de Mercado Pago.');
         }
@@ -108,6 +106,7 @@ const onProcessCardPayment = async () => {
             }
         }
         const initPoint = response.mp_preference.preference.init_point;
+        await shopModel.cleanCurrentCart();
         handleBrowserCheckout(initPoint);
 
     } catch (error) {
@@ -123,10 +122,11 @@ const onProcessUponDeliveryPayment = async () => {
         if (!cartId) {
             throw new Error('No cart ID found while processing upon delivery payment');
         }
-        const response = await updateCartDeliveryInfo(cartId, { status: 3 });
+        const response = await updateCartDeliveryInfo(cartId, { status: 3 }, { useAuthToken: true });
         if (!response) {
             throw new Error('No se pudo actualizar el estado del carrito para pago contraentrega.');
         }
+        await shopModel.cleanCurrentCart();
         redirect(`/order-confirmation/${cartId}`);
     } catch (error) {
         throw error;
@@ -134,7 +134,7 @@ const onProcessUponDeliveryPayment = async () => {
 }
 
 export const processPayment = async (selectedPaymentMethod: string) => {
-    try {        
+    try {
         if (selectedPaymentMethod === 'card') {
             await onProcessCardPayment();
             return;
