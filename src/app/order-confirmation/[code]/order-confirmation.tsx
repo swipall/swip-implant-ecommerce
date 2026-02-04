@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Price } from '@/components/commerce/price';
 import { notFound } from "next/navigation";
 import { OrderDetailInterface } from '@/lib/swipall/users/user.types';
+import ProductExtraMaterialsComponent from '@/components/commerce/product-extra-materials';
 
 export async function OrderConfirmation({ params }: PageProps<'/order-confirmation/[code]'>) {
     const { code } = await params;
@@ -59,6 +60,7 @@ export async function OrderConfirmation({ params }: PageProps<'/order-confirmati
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium">{item.item.name}</p>
                                     <p className="text-sm text-muted-foreground">SKU: {item.item.sku}</p>
+                                    <ProductExtraMaterialsComponent item={item} />
                                 </div>
                                 <div className="text-center w-16">
                                     <p className="text-sm text-muted-foreground">Cantidad</p>
