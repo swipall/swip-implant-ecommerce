@@ -11,7 +11,7 @@ export default function useShopModel() {
     }
 
     const cleanCurrentCart = async (): Promise<void> => {
-        clearCartId();
+        await clearCartId();
     }
 
     const removeCurrentCartId = async (): Promise<void> => {
@@ -20,9 +20,9 @@ export default function useShopModel() {
 
     const onCreateNewCart = async (): Promise<ShopCart> => {
         const response = await createShopCart();
-        if(!response){
+        if (!response) {
             throw new Error("Failed to create a new cart");
-        }        
+        }
         await setCartId(response.id);
         return response;
     }
@@ -32,8 +32,8 @@ export default function useShopModel() {
             const cartId = await getCurrentCartId();
             if (!cartId) {
                 throw new Error("No cart ID found");
-            }            
-            const itemExists = await itemExistsInCart(cartId, itemId);            
+            }
+            const itemExists = await itemExistsInCart(cartId, itemId);
             return itemExists;
         } catch (error) {
             console.error("Error checking if item exists in cart:", error);

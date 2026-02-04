@@ -13,9 +13,7 @@ export async function createAddress(address: Partial<AddressInterface>) {
         const result = await createApiAddress(address, { useAuthToken: true });
         revalidatePath('/account/addresses');
         return result;
-    } catch (error) {
-        console.log(error);
-        
+    } catch (error) {        
         throw new Error('No se pudo crear la dirección');
     }
 }

@@ -11,7 +11,7 @@ import { InterfaceInventoryItem, ShopCart } from '@/lib/swipall/types/types';
 import { createAddress, createCustomerInfo } from '@/lib/swipall/users';
 import { AddressInterface } from '@/lib/swipall/users/user.types';
 import { revalidatePath } from 'next/cache';
-import { redirect } from "next/navigation";
+
 
 interface AddressInput {
     fullName: string;
@@ -74,15 +74,9 @@ export async function updateShippingAddressForCart(addressId: string) {
     }
 }
 
-const handleBrowserCheckout = (initPoint: string) => {
-    if (typeof window !== 'undefined') {
-        window.location.href = initPoint;
-    } else {
-        throw new Error('Browser environment is required for redirecting to payment gateway.');
-    }
-};
 
-const onProcessCardPayment = async () => {
+
+const onProcessCardPayment = async (): Promise<{ type: 'redirect' | 'navigate'; url?: string; path?: string }> => {
     try {
         const shopModel = useShopModel();
         const cartId = await shopModel.getCurrentCartId();
@@ -107,15 +101,15 @@ const onProcessCardPayment = async () => {
         }
         const initPoint = response.mp_preference.preference.init_point;
         await shopModel.cleanCurrentCart();
-        handleBrowserCheckout(initPoint);
-
+        
+        return { type: 'redirect', url: initPoint };
     } catch (error) {
         throw error;
     }
 
 }
 
-const onProcessUponDeliveryPayment = async () => {
+const onProcessUponDeliveryPayment = async (): Promise<{ type: 'redirect' | 'navigate'; url?: string; path?: string }> => {
     try {
         const shopModel = useShopModel();
         const cartId = await shopModel.getCurrentCartId();
@@ -127,19 +121,19 @@ const onProcessUponDeliveryPayment = async () => {
             throw new Error('No se pudo actualizar el estado del carrito para pago contraentrega.');
         }
         await shopModel.cleanCurrentCart();
-        redirect(`/order-confirmation/${cartId}`);
+        
+        return { type: 'navigate', path: `/order-confirmation/${cartId}` };
     } catch (error) {
         throw error;
     }
 }
 
-export const processPayment = async (selectedPaymentMethod: string) => {
+export const processPayment = async (selectedPaymentMethod: string): Promise<{ type: 'redirect' | 'navigate'; url?: string; path?: string }> => {
     try {
         if (selectedPaymentMethod === 'card') {
-            await onProcessCardPayment();
-            return;
+            return await onProcessCardPayment();
         }
-        await onProcessUponDeliveryPayment();
+        return await onProcessUponDeliveryPayment();
     } catch (error) {
         throw error;
     }

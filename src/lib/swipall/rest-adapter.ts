@@ -15,11 +15,8 @@ import type {
     LoginInput,
     LoginResponse,
     Order,
-    PaymentInput,
-    PaymentMethod,
     RegisterInput,
     SearchInput,
-    ShippingMethod,
     ShopCart,
     ShopCartItem,
     TaxonomyInterface,
@@ -160,7 +157,24 @@ export async function getCurrentCart(options?: { useAuthToken?: boolean, cartId?
     } catch (error) {
         return null;
     }
+}
 
+export async function getCartItems(options?: { useAuthToken?: boolean; cartId?: string }): Promise<ShopCartItem[]> {
+    const storedCartId = options?.cartId || await getCartId();
+    if (!storedCartId) {
+        return [];
+    }
+    const response = await get<InterfaceApiDetailResponse<ShopCartItem[]> | InterfaceApiListResponse<ShopCartItem>>(
+        `/api/v1/shop/cart/${storedCartId}/items`,
+        undefined,
+        { useAuthToken: options?.useAuthToken }
+    );
+    const itemLines = Array.isArray((response as InterfaceApiDetailResponse<ShopCartItem[]>)?.data)
+        ? (response as InterfaceApiDetailResponse<ShopCartItem[]>)?.data || []
+        : Array.isArray((response as InterfaceApiListResponse<ShopCartItem>)?.results)
+            ? (response as InterfaceApiListResponse<ShopCartItem>).results
+            : [];
+    return itemLines;
 }
 
 export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?: string; mutateCookies?: boolean }): Promise<Order | null> {

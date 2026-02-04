@@ -22,18 +22,20 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
 
     const isForDelivery = order.for_delivery;
     const isForPickup = order.for_pickup;
-    const handlePlaceOrder = async () => {
-        console.log('handlePlaceOrder');
-        
+    const handlePlaceOrder = async () => {        
         if (!selectedPaymentMethodCode) return;
 
         setLoading(true);
         try {
-            await processPayment(selectedPaymentMethodCode);
-        } catch (error) {
-            if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
-                throw error;
+            const result = await processPayment(selectedPaymentMethodCode);
+            
+            // Handle client-side navigation/redirection
+            if (result.type === 'redirect' && result.url) {
+                window.location.href = result.url;
+            } else if (result.type === 'navigate' && result.path) {
+                window.location.href = result.path;
             }
+        } catch (error) {
             console.error('Error placing order:', error);
             toast.error('Error', {
                 description: error instanceof Error ? error.message : 'Ocurrió un error al procesar el pago.',

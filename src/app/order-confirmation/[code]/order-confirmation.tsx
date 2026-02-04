@@ -16,8 +16,6 @@ export async function OrderConfirmation({ params }: PageProps<'/order-confirmati
 
     try {
         const result = await getOrderDetail(code, { useAuthToken: true });
-        console.log('result', result);
-
         orderData = result;
     }
     catch (error) {
