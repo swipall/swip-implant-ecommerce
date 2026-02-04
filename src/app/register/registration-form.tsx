@@ -20,6 +20,8 @@ import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { registerAction } from './actions';
+import { setAuthUser } from '@/lib/auth-client';
+import { useRouter } from 'next/navigation';
 
 function indexSpaceBetween(value: string) {
     return value.search(" ");
@@ -76,6 +78,7 @@ interface RegistrationFormProps {
 }
 
 export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [serverError, setServerError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
@@ -95,6 +98,7 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
             state: '',
             country: 'México',
             mobile: '',
+            references: '',
         },
     });
 
@@ -129,7 +133,7 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
             formData.append('state', data.state);
             formData.append('country', data.country);
             formData.append('mobile', data.mobile);
-            formData.append('references',data.references || '');
+            formData.append('references', data.references || '');
             if (redirectTo) {
                 formData.append('redirectTo', redirectTo);
             }
@@ -138,12 +142,16 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
                 const result = await registerAction(undefined, formData);
                 if (result?.error) {
                     setServerError(result.error);
+                } else if (result?.success && result?.user) {
+                    // Save user to localStorage
+                    setAuthUser(result.user);
+                    // Redirect after successful registration and user saved
+                    router.push(result.redirectTo || '/');
+                    router.refresh();
                 }
             } catch (error) {
-                // Redirect errors are expected, ignore them
-                if (error instanceof Error && error.message.includes('redirect')) {
-                    return;
-                }
+                // Log any unexpected errors
+                console.error('Registration error:', error);
             }
         });
     };
@@ -287,7 +295,7 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
                         {/* Address Section */}
                         <div className="border-t pt-4 mt-4">
                             <h3 className="font-semibold text-sm mb-4">Información de Dirección</h3>
-                            
+
                             <FormField
                                 control={form.control}
                                 name="address"

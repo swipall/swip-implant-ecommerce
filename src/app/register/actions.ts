@@ -55,14 +55,25 @@ export async function registerAction(prevState: { error?: string } | undefined, 
             mobile,
             references: references || '',
         };
-        await logIn({ email, password: password1 });
-        await createCustomerInfo(customerInfo, { useAuthToken: true });
-        // Redirect to sign-in
-        const signInHref = redirectTo
-            ? `${encodeURIComponent(redirectTo)}`
-            : '/';
+        // Login and get user data
+        const loginResult = await login({ email, password: password1 });
 
-        redirect(signInHref);
+        if (!loginResult?.access_token) {
+            return { error: 'No se recibió token de autenticación' };
+        }
+
+        // Store token in cookie
+        await setAuthToken(loginResult.access_token);
+
+        // Create customer info with the new token
+        await createCustomerInfo(customerInfo, { useAuthToken: true });
+
+        // Return user data to be stored in localStorage from client
+        return {
+            success: true,
+            user: loginResult.user,
+            redirectTo: (redirectTo?.startsWith('/') && !redirectTo.startsWith('//')) ? redirectTo : '/'
+        };
     } catch (error: unknown) {
         // Don't catch redirect errors
         if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
