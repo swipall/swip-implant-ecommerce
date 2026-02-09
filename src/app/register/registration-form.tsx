@@ -22,6 +22,7 @@ import * as z from 'zod';
 import { registerAction } from './actions';
 import { setAuthUser } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
+import { CurrentUser } from '@/lib/swipall/types/types';
 
 function indexSpaceBetween(value: string) {
     return value.search(" ");
@@ -144,7 +145,7 @@ export function RegistrationForm({ redirectTo }: RegistrationFormProps) {
                     setServerError(result.error);
                 } else if (result?.success && result?.user) {
                     // Save user to localStorage
-                    setAuthUser(result.user);
+                    setAuthUser(result.user as CurrentUser);
                     // Redirect after successful registration and user saved
                     router.push(result.redirectTo || '/');
                     router.refresh();

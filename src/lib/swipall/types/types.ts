@@ -33,11 +33,8 @@ export interface LoginResponse {
 // Customer/User Types
 // ============================================================================
 
-export interface CurrentUser extends CustomerInfoInterface {
+export interface CurrentUser extends CustomerInfoInterface,UserInterface {
     id: string;
-    pk?: string;
-    first_name: string;
-    last_name: string;
 }
 
 export interface UpdateCustomerInput {

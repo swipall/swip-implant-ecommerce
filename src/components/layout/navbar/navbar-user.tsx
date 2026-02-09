@@ -30,7 +30,7 @@ export function NavbarUser() {
         );
     }
 
-    const firstName = user.first_name || user.firstName || 'Usuario';
+    const firstName = user.first_name || 'Usuario';
 
     return (
         <DropdownMenu>

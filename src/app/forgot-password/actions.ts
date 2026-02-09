@@ -1,6 +1,7 @@
 'use server';
 
-import {requestPasswordReset} from '@/lib/swipall/rest-adapter';
+import { requestPasswordReset } from "@/lib/swipall/auth";
+
 
 export async function requestPasswordResetAction(prevState: { error?: string; success?: boolean } | undefined, formData: FormData) {
     const emailAddress = formData.get('emailAddress') as string;

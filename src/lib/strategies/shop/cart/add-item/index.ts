@@ -5,7 +5,7 @@
  * con lógica específica para cada uno.
  */
 
-export { AddItemToCartStrategy } from './add-item-strategy.interface';
+export type { AddItemToCartStrategy } from './add-item-strategy.interface';
 export { AddSimpleItemToCartStrategy } from './add-simple-item-to-cart.strategy';
 export { AddCompoundItemToCartStrategy } from './add-compound-item-to-cart.strategy';
 export { AddItemStrategyFactory } from './add-item-strategy.factory';
