@@ -31,7 +31,7 @@ export function Navbar() {
                                 <SearchInput/>
                             </Suspense>
                         </div>
-                        <a href="" className="bg-black px-4 py-1 rounded-md text-white flex items-center">
+                        <a href="/page/validar-autenticidad" className="bg-black px-4 py-1 rounded-md text-white items-center flex">
                             <ShieldCheck size={14} className="mr-2"/>
                             Validar autenticidad
                         </a>

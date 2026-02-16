@@ -6,7 +6,7 @@ import { CatalogInterface } from "@/lib/swipall/types/types";
 export async function FeaturedBannersDisplay() {
     "use cache";
     cacheLife("days");
-    
+
     const params = {
         parent__slug: "mmcb-ecommerce-banners",
     };
