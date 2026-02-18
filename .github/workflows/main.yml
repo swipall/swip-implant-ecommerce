@@ -43,24 +43,21 @@ jobs:
   deploy-new-version:
     needs: build-push-gcr
     runs-on: ubuntu-latest
-    name: Deploy to VM via SSH
-    uses: 'google-github-actions/auth@v2'
-    with:
-      credentials_json: ${{ secrets.SERVICE_ACCOUNT_KEY_GCP }}
+    steps:
+      - name: Deploy to VM via SSH
+      - uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.SERVICE_ACCOUNT_KEY_GCP }}
 
-    name: 'Set up Cloud SDK'
-    uses: 'google-github-actions/setup-gcloud@v2'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
 
-    name: Configure Docker Client
-    run: |-
-        gcloud auth configure-docker ${{ env.ARTIFACT }} --quiet
-
-    name: 'Update image in VM'
-    uses: 'google-github-actions/ssh-compute@v1'
-    with:
-      instance_name: 'aurus-paola'
-      zone: 'us-central1-c'
-      user: 'dante'
-      ssh_private_key: '${{ secrets.PRIVATE_KEY }}'
-      command: >
-            sh /home/dante/swip-implant-ecommerce/deploy.sh
+      - name: 'Update image in VM'
+        uses: 'google-github-actions/ssh-compute@v1'
+      - with:
+          instance_name: 'aurus-paola'
+          zone: 'us-central1-c'
+          user: 'dante'
+          ssh_private_key: '${{ secrets.PRIVATE_KEY }}'
+          command: >
+                sh /home/dante/swip-implant-ecommerce/deploy.sh
