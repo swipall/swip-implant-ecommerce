@@ -47,7 +47,7 @@ jobs:
       - name: Deploy to VM via SSH
         uses: 'google-github-actions/auth@v2'
         with:
-          credentials_json: ${{ secrets.SERVICE_ACCOUNT_KEY_GCP }}
+          credentials_json: ${{ secrets.SERVICE_ACCOUNT_KEY_GCP_VM }}
 
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
