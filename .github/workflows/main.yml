@@ -56,7 +56,7 @@ jobs:
         uses: 'google-github-actions/ssh-compute@v1'
         with:
           instance_name: 'aurus-paola'
-          zone: 'us-central1-c'
+          zone: 'us-central1-f'
           user: 'dante'
           ssh_private_key: '${{ secrets.PRIVATE_KEY }}'
           command: >
