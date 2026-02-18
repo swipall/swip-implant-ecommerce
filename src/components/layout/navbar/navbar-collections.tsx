@@ -11,7 +11,7 @@ import { cacheLife } from 'next/cache';
 export async function NavbarCollections() {
     "use cache";
     cacheLife('days');
-    const params = { parent__slug: 'menu-principal' }
+    const params = { parent__slug: 'menu-principal', ordering: 'ordering' }
     const taxonomies = await getPosts(params);
     const redirectUrl = (collection: CmsPost) => {
         if(collection.link){

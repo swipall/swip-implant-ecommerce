@@ -24,6 +24,7 @@ const orderMapping: Record<string, string> = {
 
 export async function HomeProductsByCategorySection({ post }: HomeProductsByCategorySectionProps) {
     const body = parsePostBody<HomeProductsByCategoryBody>(post.body);
+    
     const categorySlug = body?.category_slug;
     const limit = body?.limit ?? 8;
     const ordering = body?.order ? orderMapping[body.order] ?? body.order : undefined;
