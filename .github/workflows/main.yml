@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to VM via SSH
-      - uses: 'google-github-actions/auth@v2'
+        uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.SERVICE_ACCOUNT_KEY_GCP }}
 
@@ -54,7 +54,7 @@ jobs:
 
       - name: 'Update image in VM'
         uses: 'google-github-actions/ssh-compute@v1'
-      - with:
+        with:
           instance_name: 'aurus-paola'
           zone: 'us-central1-c'
           user: 'dante'
