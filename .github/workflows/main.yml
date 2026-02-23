@@ -32,6 +32,7 @@ jobs:
       run: |-
         docker build \
           --build-arg NEXT_PUBLIC_SWIPALL_SHOP_API_URL="${{ secrets.SWIPALL_SHOP_API_URL }}" \
+          --build-arg NEXT_PUBLIC_SITE_URL="${{ secrets.NEXT_PUBLIC_SITE_URL }}" \
           -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
     - name: Push Docker Image to Artifact Registry
