@@ -11,7 +11,7 @@ async function Copyright() {
 
     return (
         <div>
-            © {new Date().getFullYear()} Implant Labs. Todos los derechos reservados.
+              © 2014 Implant Labs. Todos los derechos reservados.
         </div>
     )
 }
@@ -36,7 +36,7 @@ export async function Footer() {
 
     return (
         <footer className="border-t border-border mt-auto">
-            <div className="container mx-auto px-4 py-12">
+            <div className="container mx-auto px-4 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8 hidden">
                     <div>
                         <p className="text-sm font-semibold mb-4 uppercase tracking-wider">
@@ -99,9 +99,9 @@ export async function Footer() {
 
                 {/* Bottom Section */}
                 <div
-                    className="mt-12 border-border flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
+                    className="border-border text-center flex flex-col md:flex-row justify-center items-center gap-4 text-sm text-muted-foreground">
                     <Copyright />
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 hidden">
                         <span>Powered by</span>
                         <a
                             href="https://swipall.io"
