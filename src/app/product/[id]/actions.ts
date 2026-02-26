@@ -5,6 +5,7 @@ import { AddItemStrategyFactory } from '@/lib/strategies/shop/cart/add-item/add-
 import { fetchCompoundMaterials, getGroupVariantByTaxonomies } from '@/lib/swipall/inventory';
 import { AddProductToCartBody, getProduct, testCreatePosCart } from '@/lib/swipall/rest-adapter';
 import { updateTag } from 'next/cache';
+import { getAuthUserCustomerId } from '@/lib/auth';
 
 export { getGroupVariantByTaxonomies };
 
@@ -24,8 +25,9 @@ export async function addToCart(
         if (!cartId) {
             const newCart = await shopModel.onCreateNewCart();
             cartId = newCart.id;
-        }
-        const product = await getProduct(itemId);        
+        }        
+        const customerId = await getAuthUserCustomerId();
+        const product = await getProduct(itemId, customerId);        
         const strategyFactory = new AddItemStrategyFactory(shopModel);
         const strategy = strategyFactory.getStrategy(product);
         const result = await strategy.addItemToCart(cartId, itemId, params);
@@ -34,8 +36,13 @@ export async function addToCart(
 
         return { success: true, data: result.data };
     } catch (error: any) {
+        if(error.status === 404){
+            // Clear cartId if item not found
+            const shopModel = useShopModel();
+            await shopModel.removeCurrentCartId();
+            return { success: false, error: 'Ocurrió un error al añadir el producto al carrito, por favor inténtalo de nuevo.' };
+        }        
         const message = error instanceof Error ? error.message : 'Failed to add item to cart';
-        console.error('Error adding item to cart:', error);
         return { success: false, error: message };
     }
 }

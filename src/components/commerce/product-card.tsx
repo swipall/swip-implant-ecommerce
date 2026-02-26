@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { Price } from '@/components/commerce/price';
 import { Suspense } from "react";
 import Link from "next/link";
-import type { InterfaceInventoryItem } from '@/lib/swipall/rest-adapter';
+import { InterfaceInventoryItem } from '@/lib/swipall/types/types';
 
 interface ProductCardProps {
     product: InterfaceInventoryItem;

@@ -10,15 +10,19 @@ export default function useShopModel() {
         return cartId || null;
     }
 
+    const cleanCurrentCart = async (): Promise<void> => {
+        await clearCartId();
+    }
+
     const removeCurrentCartId = async (): Promise<void> => {
         await clearCartId();
     }
 
     const onCreateNewCart = async (): Promise<ShopCart> => {
         const response = await createShopCart();
-        if(!response){
+        if (!response) {
             throw new Error("Failed to create a new cart");
-        }        
+        }
         await setCartId(response.id);
         return response;
     }
@@ -28,8 +32,8 @@ export default function useShopModel() {
             const cartId = await getCurrentCartId();
             if (!cartId) {
                 throw new Error("No cart ID found");
-            }            
-            const itemExists = await itemExistsInCart(cartId, itemId);            
+            }
+            const itemExists = await itemExistsInCart(cartId, itemId);
             return itemExists;
         } catch (error) {
             console.error("Error checking if item exists in cart:", error);
@@ -78,9 +82,9 @@ export default function useShopModel() {
         }
     }
 
-    const fetchDeliveryConcept = async () => {
+    const fetchDeliveryConcept = async (customerId?: string) => {
         try {
-            return (await fetchDeliveryItem()).results || [];
+            return (await fetchDeliveryItem(customerId)).results || [];
         } catch (error) {
             throw error;
         }
@@ -143,6 +147,7 @@ export default function useShopModel() {
         onUpdateCartForPickup,
         onSetCustomerToCart,
         removeCurrentCartId,
-        updateCartShippingAddress
+        updateCartShippingAddress,
+        cleanCurrentCart
     };
 }

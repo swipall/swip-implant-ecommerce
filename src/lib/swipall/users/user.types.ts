@@ -1,4 +1,4 @@
-import { OrderPaymentType } from "@/app/account/orders/types";
+import { ORDER_STATUS, OrderPaymentType } from "@/app/account/orders/types";
 import { Material, ProductAttribute } from "../types/types";
 
 export interface AddressInterface {
@@ -16,7 +16,13 @@ export interface AddressInterface {
 
 export interface CustomerInfoInterface {
     id: string;
+    business_name: string;
+    mobile: string;
+    email: string;
+    extra_fields: any[];
+    properties: any[];
     address: AddressInterface
+    price_list?: string;
 }
 
 export interface OrderInterface {
@@ -67,7 +73,7 @@ export interface OrderDetailInterface {
     created_at: string;
     folio: string;
     store: string;
-    status: number;
+    status: ORDER_STATUS;
     sub_total: string;
     discount_total: string;
     shipment_total: string;

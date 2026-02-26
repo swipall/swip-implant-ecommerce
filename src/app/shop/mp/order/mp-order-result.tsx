@@ -1,13 +1,16 @@
-import { getOrderDetail } from '@/lib/swipall/rest-adapter';
+import { Price } from '@/components/commerce/price';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
-import { Price } from '@/components/commerce/price';
-import { notFound } from 'next/navigation';
+import { getCartItems, getCurrentCart, getOrderDetail } from '@/lib/swipall/rest-adapter';
 import { OrderDetailInterface } from '@/lib/swipall/users/user.types';
+import { AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { CartCleaner } from './cart-cleaner';
+import { CartSaver } from './cart-saver';
+import { fetchOrderDetail } from './actions';
+import ProductExtraMaterialsComponent from '@/components/commerce/product-extra-materials';
 
 interface MpOrderResultProps {
     searchParams: Promise<{
@@ -19,7 +22,7 @@ interface MpOrderResultProps {
 export async function MpOrderResult({ searchParams }: MpOrderResultProps) {
     const params = await searchParams;
     const orderId = params.order;
-    const status = params.status;
+    const status: 'success' | 'pending' | 'failure' = Array.isArray(params.status) ? params.status.find(s => ['success', 'pending', 'failure'].includes(s)) : params.status || 'failure';
 
     if (!orderId || !status) {
         return (
@@ -44,10 +47,19 @@ export async function MpOrderResult({ searchParams }: MpOrderResultProps) {
     }
 
     let orderData: OrderDetailInterface | null = null;
+    let shouldSaveCartId = false;
+    let shouldClearCart = false;
 
     try {
-        const result = await getOrderDetail(orderId);
+        const result = await fetchOrderDetail(orderId, status);
         orderData = result;
+        if (status === 'success') {
+            // if payment was successful, we make sure to clear the cart
+            shouldClearCart = true;
+        } else {
+            // if payment was not successful, we save the cart ID so user can retry payment
+            shouldSaveCartId = true;
+        }
     } catch (error) {
         orderData = null;
     }
@@ -102,6 +114,8 @@ export async function MpOrderResult({ searchParams }: MpOrderResultProps) {
 
     return (
         <div className="container mx-auto px-4 py-16">
+            {shouldClearCart && <CartCleaner />}
+            {shouldSaveCartId && <CartSaver cartId={orderId} />}
             <div className="max-w-3xl mx-auto">
                 <div className="text-center mb-8">
                     <StatusIcon className={`h-16 w-16 ${config.iconColor} mx-auto mb-4`} />
@@ -133,6 +147,7 @@ export async function MpOrderResult({ searchParams }: MpOrderResultProps) {
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium">{item.item.name}</p>
                                     <p className="text-sm text-muted-foreground">SKU: {item.item.sku}</p>
+                                    <ProductExtraMaterialsComponent item={item} />
                                 </div>
                                 <div className="text-center w-16">
                                     <p className="text-sm text-muted-foreground">Cantidad</p>

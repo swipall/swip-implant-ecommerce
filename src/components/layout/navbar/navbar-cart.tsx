@@ -1,6 +1,6 @@
-import {cacheLife, cacheTag} from 'next/cache';
-import {CartIcon} from './cart-icon';
-import { getActiveOrder } from '@/lib/swipall/rest-adapter';
+import { getCurrentCart } from '@/lib/swipall/rest-adapter';
+import { cacheLife, cacheTag } from 'next/cache';
+import { CartIcon } from './cart-icon';
 
 export async function NavbarCart() {
     'use cache: private';
@@ -9,7 +9,7 @@ export async function NavbarCart() {
     cacheTag('active-order');
 
     try {
-        const order = await getActiveOrder({ useAuthToken: true, mutateCookies: false });        
+        const order = await getCurrentCart({ useAuthToken: true });        
         const cartItemCount = order?.count_items.count || 0;
         return <CartIcon cartItemCount={cartItemCount} />;
     } catch (error) {

@@ -57,7 +57,7 @@ async function RegisterContent({searchParams}: {searchParams: Promise<Record<str
 
 export default async function RegisterPage({searchParams}: PageProps<'/register'>) {
     return (
-        <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="flex min-h-screen items-center justify-center px-4 pb-2 pt-16">
             <div className="w-full max-w-md space-y-6">
                 <div className="space-y-2 text-center">
                     <h1 className="text-3xl font-bold">Crear Cuenta</h1>

@@ -12,14 +12,8 @@ import type {
     InterfaceApiDetailResponse,
     InterfaceApiListResponse,
     InterfaceInventoryItem,
-    LoginInput,
-    LoginResponse,
     Order,
-    PaymentInput,
-    PaymentMethod,
-    RegisterInput,
     SearchInput,
-    ShippingMethod,
     ShopCart,
     ShopCartItem,
     TaxonomyInterface,
@@ -30,18 +24,6 @@ import { OrderDetailInterface, OrderInterface } from './users/user.types';
 
 export type { SearchInput } from './types/types';
 
-
-// ============================================================================
-// Authentication Endpoints
-// ============================================================================
-
-export async function login(credentials: LoginInput): Promise<LoginResponse> {
-    return post<LoginResponse>('/api/v1/shop/login/', credentials);
-}
-
-export async function logout(options?: { useAuthToken?: boolean }): Promise<InterfaceApiDetailResponse<{ success: boolean }>> {
-    return post<InterfaceApiDetailResponse<{ success: boolean }>>('/auth/logout', undefined, { useAuthToken: options?.useAuthToken });
-}
 
 // ============================================================================
 // Customer/User Endpoints
@@ -83,9 +65,10 @@ export async function setDefaultBillingAddress(id: string, options?: { useAuthTo
 // Product Endpoints
 // ============================================================================
 
-export async function getProduct(id: string): Promise<InterfaceInventoryItem> {
+export async function getProduct(id: string, customerId?: string): Promise<InterfaceInventoryItem> {
     const endpoint = `/api/v1/shop/item/${id}`;
-    return get<InterfaceInventoryItem>(endpoint);
+    const params = customerId ? { customer_id: customerId } : undefined;
+    return get<InterfaceInventoryItem>(endpoint, params);
 }
 
 export async function getGroupVariants(groupId: string): Promise<InterfaceApiListResponse<InterfaceInventoryItem>> {
@@ -133,8 +116,7 @@ export async function getCustomerAddresses(options?: { useAuthToken?: boolean })
 // Search Endpoints
 // ============================================================================
 export type SearchResult = InterfaceApiListResponse<InterfaceInventoryItem>;
-export async function searchProducts(input: SearchInput): Promise<SearchResult> {
-    console.log(input)
+export async function searchProducts(input: SearchInput, customerId?: string): Promise<SearchResult> {
     const params = new URLSearchParams();
     if (input.search) params.append('search', input.search);
     if (input.offset) params.append('offset', String(input.offset));
@@ -142,14 +124,46 @@ export async function searchProducts(input: SearchInput): Promise<SearchResult> 
     if (input.ordering) params.append('ordering', input.ordering);
     if (input.taxonomy) params.append('taxonomy', input.taxonomy);
     if (input.taxonomies__slug__and) params.append('taxonomies__slug__and', input.taxonomies__slug__and);
+    if (customerId) params.append('customer_id', customerId);
     const endpoint = `/api/v1/shop/items`;
-    console.log(params)
-    return get<InterfaceApiListResponse<InterfaceInventoryItem>>(endpoint, params);
+    const parsedParams = Object.fromEntries(params.entries());
+    return get<InterfaceApiListResponse<InterfaceInventoryItem>>(endpoint, parsedParams);
 }
 
 // ============================================================================
 // Cart/Order Endpoints
 // ============================================================================
+
+export async function getCurrentCart(options?: { useAuthToken?: boolean, cartId?: string }): Promise<ShopCart | null> {
+    try {
+        const storedCartId = options?.cartId || await getCartId();
+        if (!storedCartId) {
+            return null
+        }
+        const response = await get<ShopCart>(`/api/v1/shop/cart/${storedCartId}`, undefined, { useAuthToken: options?.useAuthToken });
+        return response;
+    } catch (error) {
+        return null;
+    }
+}
+
+export async function getCartItems(options?: { useAuthToken?: boolean; cartId?: string }): Promise<ShopCartItem[]> {
+    const storedCartId = options?.cartId || await getCartId();
+    if (!storedCartId) {
+        return [];
+    }
+    const response = await get<InterfaceApiDetailResponse<ShopCartItem[]> | InterfaceApiListResponse<ShopCartItem>>(
+        `/api/v1/shop/cart/${storedCartId}/items`,
+        undefined,
+        { useAuthToken: options?.useAuthToken }
+    );
+    const itemLines = Array.isArray((response as InterfaceApiDetailResponse<ShopCartItem[]>)?.data)
+        ? (response as InterfaceApiDetailResponse<ShopCartItem[]>)?.data || []
+        : Array.isArray((response as InterfaceApiListResponse<ShopCartItem>)?.results)
+            ? (response as InterfaceApiListResponse<ShopCartItem>).results
+            : [];
+    return itemLines;
+}
 
 export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?: string; mutateCookies?: boolean }): Promise<Order | null> {
     const storedCartId = options?.cartId || await getCartId();
@@ -183,7 +197,6 @@ export async function getActiveOrder(options?: { useAuthToken?: boolean; cartId?
         if (mutateCookies) {
             await clearCartId();
         }
-        console.error('[getActiveOrder] Failed to fetch cart:', error);
         return null;
     }
 }
@@ -238,19 +251,22 @@ export async function removeFromCart(lineId: string, options?: { useAuthToken?: 
     return remove<InterfaceApiDetailResponse<Order>>(endpoint, { useAuthToken: options?.useAuthToken });
 }
 
-export const fetchDeliveryItem = async (): Promise<InterfaceApiListResponse<InterfaceInventoryItem>> => {
-    const params = {
+export const fetchDeliveryItem = async (customerId?: string): Promise<InterfaceApiListResponse<InterfaceInventoryItem>> => {
+    const params: Record<string, any> = {
         limit: 1,
         offset: 0,
         search: 'DOMICILIO',
         kind: 'service'
+    };
+    if (customerId) {
+        params.customer_id = customerId;
     }
     const uri = `/api/v1/shop/items`;
     return get<InterfaceApiListResponse<InterfaceInventoryItem>>(uri, params);
 }
 
-export const updateCartDeliveryInfo = async (cartId: string, body: UpdateCartDeliveryInfoBody): Promise<InterfaceApiDetailResponse<ShopCart>> => {
-    return patch<InterfaceApiDetailResponse<ShopCart>>(`/api/v1/shop/cart/${cartId}/set/shipping/`, body);
+export const updateCartDeliveryInfo = async (cartId: string, body: UpdateCartDeliveryInfoBody, options?: { useAuthToken?: boolean }): Promise<InterfaceApiDetailResponse<ShopCart>> => {
+    return patch<InterfaceApiDetailResponse<ShopCart>>(`/api/v1/shop/cart/${cartId}/set/shipping/`, body, { useAuthToken: options?.useAuthToken });
 }
 
 export const setCustomerToCart = async (cartId: string): Promise<ShopCart> => {
@@ -307,21 +323,6 @@ export async function getOrderDetail(code: string, options?: { useAuthToken?: bo
     return get<OrderDetailInterface>(`/api/v1/shop/me/order/${code}`, undefined, { useAuthToken: options?.useAuthToken });
 }
 
-// ============================================================================
-// Registration & Password Reset Endpoints
-// ============================================================================
-
-export async function registerCustomer(input: RegisterInput): Promise<InterfaceApiDetailResponse<{ success: boolean }>> {
-    return post<InterfaceApiDetailResponse<{ success: boolean }>>('/api/v1/shop/register/', input);
-}
-
-export async function requestPasswordReset(emailAddress: string): Promise<InterfaceApiDetailResponse<{ success: boolean }>> {
-    return post<InterfaceApiDetailResponse<{ success: boolean }>>('/api/v1/auth/password/reset/', { email: emailAddress });
-}
-
-export async function resetPassword(token: string, password: string): Promise<InterfaceApiDetailResponse<{ user: CurrentUser }>> {
-    return post<InterfaceApiDetailResponse<{ user: CurrentUser }>>('/auth/reset-password', { token, password });
-}
 
 // ============================================================================
 // Email Verification Endpoints

@@ -56,20 +56,12 @@ export default function OrderSummary() {
 
                     {order.discount_total && (
                         <div className="flex justify-between text-sm text-green-600">
+                             <span className="text-muted-foreground">Descuento</span>
                             <span>
                                 <Price value={Number(order.discount_total)} />
                             </span>
                         </div>
                     )}
-
-                    <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Shipping</span>
-                        <span>
-                            {Number(order.tax_total) > 0
-                                ? <Price value={Number(order.tax_total)} />
-                                : 'To be calculated'}
-                        </span>
-                    </div>
                 </div>
 
                 <Separator />

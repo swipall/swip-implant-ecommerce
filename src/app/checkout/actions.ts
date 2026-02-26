@@ -10,8 +10,8 @@ import {
 import { InterfaceInventoryItem, ShopCart } from '@/lib/swipall/types/types';
 import { createAddress, createCustomerInfo } from '@/lib/swipall/users';
 import { AddressInterface } from '@/lib/swipall/users/user.types';
-import { revalidatePath, updateTag } from 'next/cache';
-import { redirect } from "next/navigation";
+import { revalidatePath } from 'next/cache';
+import { getAuthUserCustomerId } from '@/lib/auth';
 
 interface AddressInput {
     fullName: string;
@@ -36,7 +36,10 @@ export async function setShippingAddress(
     }
 }
 
-export async function registerCustomerInfo(address: Partial<AddressInterface>) {
+export async function registerCustomerInfo(address: Partial<AddressInterface>): Promise<{
+    id: string;
+    address: AddressInterface;
+}> {
     try {
         const result = await createCustomerInfo(address, { useAuthToken: true });
         revalidatePath('/checkout');
@@ -46,7 +49,7 @@ export async function registerCustomerInfo(address: Partial<AddressInterface>) {
     }
 }
 
-export async function createCustomerAddress(address: Partial<AddressInterface>) {
+export async function createCustomerAddress(address: Partial<AddressInterface>): Promise<AddressInterface> {
     try {
         const result = await createAddress(address, { useAuthToken: true });
         revalidatePath('/checkout');
@@ -71,15 +74,9 @@ export async function updateShippingAddressForCart(addressId: string) {
     }
 }
 
-const handleBrowserCheckout = (initPoint: string) => {
-    if (typeof window !== 'undefined') {
-        window.location.href = initPoint;
-    } else {
-        throw new Error('Browser environment is required for redirecting to payment gateway.');
-    }
-};
 
-const onProcessCardPayment = async () => {
+
+const onProcessCardPayment = async (): Promise<{ type: 'redirect' | 'navigate'; url?: string; path?: string }> => {
     try {
         const shopModel = useShopModel();
         const cartId = await shopModel.getCurrentCartId();
@@ -103,62 +100,68 @@ const onProcessCardPayment = async () => {
             }
         }
         const initPoint = response.mp_preference.preference.init_point;
-        handleBrowserCheckout(initPoint);
-
+        await shopModel.cleanCurrentCart();
+        
+        return { type: 'redirect', url: initPoint };
     } catch (error) {
         throw error;
     }
 
 }
 
-const onProcessUponDeliveryPayment = async () => {
+const onProcessUponDeliveryPayment = async (): Promise<{ type: 'redirect' | 'navigate'; url?: string; path?: string }> => {
     try {
         const shopModel = useShopModel();
         const cartId = await shopModel.getCurrentCartId();
         if (!cartId) {
             throw new Error('No cart ID found while processing upon delivery payment');
         }
-        const response = await updateCartDeliveryInfo(cartId, { status: 3 });
+        const response = await updateCartDeliveryInfo(cartId, { status: 3 }, { useAuthToken: true });
         if (!response) {
             throw new Error('No se pudo actualizar el estado del carrito para pago contraentrega.');
         }
-        redirect(`/order-confirmation/${cartId}`);
+        await shopModel.cleanCurrentCart();
+        
+        return { type: 'navigate', path: `/order-confirmation/${cartId}` };
     } catch (error) {
         throw error;
     }
 }
 
-export const processPayment = async (selectedPaymentMethod: string) => {
-    try {        
+export const processPayment = async (selectedPaymentMethod: string): Promise<{ type: 'redirect' | 'navigate'; url?: string; path?: string }> => {
+    try {
         if (selectedPaymentMethod === 'card') {
-            await onProcessCardPayment();
-            return;
+            return await onProcessCardPayment();
         }
-        await onProcessUponDeliveryPayment();
+        return await onProcessUponDeliveryPayment();
     } catch (error) {
         throw error;
     }
 }
 
-export async function setCustomerForOrder(): Promise<ShopCart> {
+export async function setCustomerForOrder(): Promise<ShopCart | null> {
     try {
         const shopModel = useShopModel();
         const cartId = await shopModel.getCurrentCartId();
         if (!cartId) {
-            throw new Error('No cart ID found while updating cart for delivery');
+            console.warn('No cart ID found while setting customer for order');
+            return null;
         }
         const response = await shopModel.onSetCustomerToCart(cartId);
         return response;
     } catch (error: unknown) {
-        throw error;
+        console.warn('Error setting customer for order:', error);
+        // Don't throw - silently fail as this is not critical for checkout
+        return null;
     }
 }
 
 
 export async function fetchDeliveryItem(): Promise<InterfaceInventoryItem | null> {
     try {
+        const customerId = await getAuthUserCustomerId();
         const shopModel = useShopModel();
-        const results = await shopModel.fetchDeliveryConcept();
+        const results = await shopModel.fetchDeliveryConcept(customerId);
         return results.length > 0 ? results[0] : null;
     } catch (error) {
         console.error('Error fetching delivery item:', error);
@@ -174,9 +177,11 @@ export async function updateCartForDelivery(deliveryServiceItem: InterfaceInvent
         if (!cartId) {
             throw new Error('No cart ID found while updating cart for delivery');
         }
-        return await shopModel.onUpdateCartForDelivery(cartId, deliveryServiceItem);
+        const result = await shopModel.onUpdateCartForDelivery(cartId, deliveryServiceItem);
+        revalidatePath('/checkout');
+        return result;
     } catch (error) {
-        console.error('Error fetching delivery item:', error);
+        console.error('Error updating cart for delivery:', error);
         throw error;
     }
 }
@@ -189,9 +194,11 @@ export async function updateCartForPickup(deliveryServiceItem?: InterfaceInvento
         if (!cartId) {
             throw new Error('No cart ID found while updating cart for pickup');
         }
-        return await shopModel.onUpdateCartForPickup(cartId, deliveryServiceItem as InterfaceInventoryItem);
+        const result = await shopModel.onUpdateCartForPickup(cartId, deliveryServiceItem as InterfaceInventoryItem);
+        revalidatePath('/checkout');
+        return result;
     } catch (error) {
-        console.error('Error fetching delivery item:', error);
+        console.error('Error updating cart for pickup:', error);
         throw error;
     }
 }

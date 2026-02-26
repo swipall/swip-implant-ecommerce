@@ -1,6 +1,6 @@
 'use server';
 
-import {resetPassword} from '@/lib/swipall/rest-adapter';
+import { resetPassword } from '@/lib/swipall/auth';
 import {redirect} from 'next/navigation';
 
 export async function resetPasswordAction(prevState: { error?: string } | undefined, formData: FormData) {

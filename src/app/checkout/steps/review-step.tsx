@@ -13,7 +13,7 @@ interface ReviewStepProps {
 }
 
 export default function ReviewStep({ onEditStep }: ReviewStepProps) {
-    const { order, paymentMethods, selectedPaymentMethodCode, deliveryItem } = useCheckout();
+    const { order, paymentMethods, selectedPaymentMethodCode, deliveryItem, fulfillmentType } = useCheckout();
     const [loading, setLoading] = useState(false);
 
     const selectedPaymentMethod = paymentMethods.find(
@@ -22,16 +22,20 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
 
     const isForDelivery = order.for_delivery;
     const isForPickup = order.for_pickup;
-    const handlePlaceOrder = async () => {
+    const handlePlaceOrder = async () => {        
         if (!selectedPaymentMethodCode) return;
 
         setLoading(true);
         try {
-            await processPayment(selectedPaymentMethodCode);
-        } catch (error) {
-            if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
-                throw error;
+            const result = await processPayment(selectedPaymentMethodCode);
+            
+            // Handle client-side navigation/redirection
+            if (result.type === 'redirect' && result.url) {
+                window.location.href = result.url;
+            } else if (result.type === 'navigate' && result.path) {
+                window.location.href = result.path;
             }
+        } catch (error) {
             console.error('Error placing order:', error);
             toast.error('Error', {
                 description: error instanceof Error ? error.message : 'Ocurrió un error al procesar el pago.',
@@ -45,41 +49,43 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
             <h3 className="font-semibold text-lg">Revisa tu pedido</h3>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                {/* Shipping Address */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-muted-foreground" />
-                        <h4 className="font-medium">Dirección de envío</h4>
-                    </div>
-                    {order.shipment_address ? (
-                        <div className="text-sm space-y-3">
-                            <div>
-                                <p className="font-medium">{order.shipment_address.receiver || 'Sin nombre'}</p>
-                                <p className="text-muted-foreground">{order.shipment_address.address}</p>
-                                {order.shipment_address.suburb && (
-                                    <p className="text-muted-foreground">{order.shipment_address.suburb}</p>
-                                )}
-                                <p className="text-muted-foreground">
-                                    {order.shipment_address.city}, {order.shipment_address.state} {order.shipment_address.postal_code}
-                                </p>
-                                <p className="text-muted-foreground">{order.shipment_address.country}</p>
-                                {order.shipment_address.mobile && (
-                                    <p className="text-muted-foreground">{order.shipment_address.mobile}</p>
-                                )}
-                            </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => onEditStep('shipping')}
-                            >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Editar
-                            </Button>
+                {/* Shipping Address - Only show if delivery */}
+                {fulfillmentType === 'delivery' && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="h-5 w-5 text-muted-foreground" />
+                            <h4 className="font-medium">Dirección de envío</h4>
                         </div>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">No hay dirección de envío configurada</p>
-                    )}
-                </div>
+                        {order.shipment_address ? (
+                            <div className="text-sm space-y-3">
+                                <div>
+                                    <p className="font-medium">{order.shipment_address.receiver || 'Sin nombre'}</p>
+                                    <p className="text-muted-foreground">{order.shipment_address.address}</p>
+                                    {order.shipment_address.suburb && (
+                                        <p className="text-muted-foreground">{order.shipment_address.suburb}</p>
+                                    )}
+                                    <p className="text-muted-foreground">
+                                        {order.shipment_address.city}, {order.shipment_address.state} {order.shipment_address.postal_code}
+                                    </p>
+                                    <p className="text-muted-foreground">{order.shipment_address.country}</p>
+                                    {order.shipment_address.mobile && (
+                                        <p className="text-muted-foreground">{order.shipment_address.mobile}</p>
+                                    )}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onEditStep('shipping')}
+                                >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Editar
+                                </Button>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No hay dirección de envío configurada</p>
+                        )}
+                    </div>
+                )}
 
                 {/* Delivery Method */}
                 <div className="space-y-3">
@@ -151,7 +157,12 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
 
             <Button
                 onClick={handlePlaceOrder}
-                disabled={loading || !order.shipment_address || !selectedPaymentMethodCode || (!isForDelivery && !isForPickup)}
+                disabled={
+                    loading || 
+                    !selectedPaymentMethodCode || 
+                    (!isForDelivery && !isForPickup) ||
+                    (fulfillmentType === 'delivery' && !order.shipment_address)
+                }
                 size="lg"
                 className="w-full"
             >
@@ -159,7 +170,7 @@ export default function ReviewStep({ onEditStep }: ReviewStepProps) {
                 Confirmar pedido
             </Button>
 
-            {(!order.shipment_address || !selectedPaymentMethodCode || (!isForDelivery && !isForPickup)) && (
+            {(!selectedPaymentMethodCode || (!isForDelivery && !isForPickup) || (fulfillmentType === 'delivery' && !order.shipment_address)) && (
                 <p className="text-sm text-destructive text-center">
                     Por favor completa todos los pasos anteriores antes de confirmar tu pedido
                 </p>

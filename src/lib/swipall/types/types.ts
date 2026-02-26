@@ -6,7 +6,7 @@
  */
 
 import { OrderStatusPaid } from "@/app/account/orders/types";
-import { AddressInterface, OrderItemDetailInterface } from "../users/user.types";
+import { AddressInterface, CustomerInfoInterface, OrderItemDetailInterface } from "../users/user.types";
 
 // ============================================================================
 // Authentication Types
@@ -33,19 +33,8 @@ export interface LoginResponse {
 // Customer/User Types
 // ============================================================================
 
-export interface CurrentUser {
-    id?: string;
-    pk?: string;
-    identifier?: string;
-    firstName?: string;
-    first_name?: string;
-    lastName?: string;
-    last_name?: string;
-    emailAddress?: string;
-    email?: string;
-    phoneNumber?: string;
-    phone?: string;
-    addresses?: Address[];
+export interface CurrentUser extends CustomerInfoInterface,UserInterface {
+    id: string;
 }
 
 export interface UpdateCustomerInput {

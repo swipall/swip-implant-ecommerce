@@ -1,22 +1,25 @@
 'use client';
 
-import { useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import ContactStep from './steps/contact-step';
-import ShippingAddressStep from './steps/shipping-address-step';
+import { useState } from 'react';
+import { useCheckout } from './checkout-provider';
+import OrderSummary from './order-summary';
 import DeliveryStep from './steps/delivery-step';
 import PaymentStep from './steps/payment-step';
 import ReviewStep from './steps/review-step';
-import OrderSummary from './order-summary';
-import { useCheckout } from './checkout-provider';
+import ShippingAddressStep from './steps/shipping-address-step';
 
 type CheckoutStep = 'contact' | 'shipping' | 'delivery' | 'payment' | 'review';
 
 export default function CheckoutFlow() {
-    const { order } = useCheckout();
+    const { fulfillmentType } = useCheckout();   
 
     const getStepOrder = (): CheckoutStep[] => {
-        return ['shipping', 'delivery', 'payment', 'review'];
+        // If pickup is selected, skip shipping address
+        if (fulfillmentType === 'pickup') {
+            return ['delivery', 'payment', 'review'];
+        }
+        return ['delivery', 'shipping', 'payment', 'review'];
     };
 
     const stepOrder = getStepOrder();
@@ -24,19 +27,6 @@ export default function CheckoutFlow() {
     const getInitialState = () => {
         const completed = new Set<CheckoutStep>();
         let current: CheckoutStep = stepOrder[0];
-
-        // if (order.shipment_address?. && order.shipment_address?.country) {
-        //     completed.add('shipping');
-        //     current = 'delivery';
-        // }
-
-        // if (order.shippingLines && order.shippingLines.length > 0) {
-        //     if (completed.has('shipping')) {
-        //         completed.add('delivery');
-        //         current = 'payment';
-        //     }
-        // }
-
         return { completed, current };
     };
 
@@ -57,6 +47,9 @@ export default function CheckoutFlow() {
         const stepIndex = stepOrder.indexOf(step);
 
         if (stepIndex === 0) return true;
+        
+        // If step is not in current stepOrder (e.g., shipping when pickup), deny access
+        if (stepIndex === -1) return false;
 
         const previousStep = stepOrder[stepIndex - 1];
         return completedSteps.has(previousStep);
@@ -80,34 +73,6 @@ export default function CheckoutFlow() {
                     }}
                     className="space-y-4"
                 >
-                    <AccordionItem
-                        value="shipping"
-                        className="border rounded-lg px-6"
-                        disabled={!canAccessStep('shipping')}
-                    >
-                        <AccordionTrigger
-                            className="hover:no-underline"
-                            disabled={!canAccessStep('shipping')}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${completedSteps.has('shipping')
-                                        ? 'bg-green-500 text-white'
-                                        : currentStep === 'shipping'
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-muted text-muted-foreground'
-                                    }`}>
-                                    {completedSteps.has('shipping') ? '✓' : getStepNumber('shipping')}
-                                </div>
-                                <span className="text-lg font-semibold">Dirección de Envío</span>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pt-4">
-                            <ShippingAddressStep
-                                onComplete={() => handleStepComplete('shipping')}
-                            />
-                        </AccordionContent>
-                    </AccordionItem>
-
                     <AccordionItem
                         value="delivery"
                         className="border rounded-lg px-6"
@@ -135,6 +100,36 @@ export default function CheckoutFlow() {
                             />
                         </AccordionContent>
                     </AccordionItem>
+
+                    {fulfillmentType === 'delivery' && (
+                        <AccordionItem
+                            value="shipping"
+                            className="border rounded-lg px-6"
+                            disabled={!canAccessStep('shipping')}
+                        >
+                            <AccordionTrigger
+                                className="hover:no-underline"
+                                disabled={!canAccessStep('shipping')}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${completedSteps.has('shipping')
+                                            ? 'bg-green-500 text-white'
+                                            : currentStep === 'shipping'
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted text-muted-foreground'
+                                        }`}>
+                                        {completedSteps.has('shipping') ? '✓' : getStepNumber('shipping')}
+                                    </div>
+                                    <span className="text-lg font-semibold">Dirección de Envío</span>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-4">
+                                <ShippingAddressStep
+                                    onComplete={() => handleStepComplete('shipping')}
+                                />
+                            </AccordionContent>
+                        </AccordionItem>
+                    )}
 
                     <AccordionItem
                         value="payment"

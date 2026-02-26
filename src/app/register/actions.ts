@@ -1,7 +1,8 @@
 'use server';
 
-import { registerCustomer } from '@/lib/swipall/rest-adapter';
-import { redirect } from 'next/navigation';
+import { setAuthToken } from '@/lib/auth';
+import { login, registerCustomer } from '@/lib/swipall/auth';
+import { createCustomerInfo } from '@/lib/swipall/users';
 
 export async function registerAction(prevState: { error?: string } | undefined, formData: FormData) {
     const email = formData.get('email') as string;
@@ -12,7 +13,17 @@ export async function registerAction(prevState: { error?: string } | undefined, 
     const password2 = formData.get('password2') as string;
     const redirectTo = formData.get('redirectTo') as string | null;
 
-    if (!email || !first_name || !last_name || !password1 || !password2) {
+    // Address fields
+    const address = formData.get('address') as string;
+    const suburb = formData.get('suburb') as string;
+    const postal_code = formData.get('postal_code') as string;
+    const city = formData.get('city') as string;
+    const state = formData.get('state') as string;
+    const country = formData.get('country') as string;
+    const mobile = formData.get('mobile') as string;
+    const references = formData.get('references') as string;
+
+    if (!email || !first_name || !last_name || !password1 || !password2 || !address || !suburb || !postal_code || !city || !state || !mobile) {
         return { error: 'Todos los campos son requeridos' };
     }
 
@@ -30,13 +41,37 @@ export async function registerAction(prevState: { error?: string } | undefined, 
             password2,
         });
 
-        // here we could navigate to verify-pending page with redirectTo param but for now redirect to sign-in
-        /// since the commerce does not require verification to sign in
-        const signInHref = redirectTo
-            ? `/sign-in?redirectTo=${encodeURIComponent(redirectTo)}`
-            : '/sign-in';
 
-        redirect(signInHref);
+        const customerInfo = {
+            receiver: `${first_name} ${last_name}`,
+            address,
+            suburb,
+            postal_code,
+            city,
+            state,
+            country,
+            mobile,
+            references: references || '',
+        };
+        // Login and get user data
+        const loginResult = await login({ email, password: password1 });
+
+        if (!loginResult?.access_token) {
+            return { error: 'No se recibió token de autenticación' };
+        }
+
+        // Store token in cookie
+        await setAuthToken(loginResult.access_token);
+
+        // Create customer info with the new token
+        await createCustomerInfo(customerInfo, { useAuthToken: true });
+
+        // Return user data to be stored in localStorage from client
+        return {
+            success: true,
+            user: loginResult.user,
+            redirectTo: (redirectTo?.startsWith('/') && !redirectTo.startsWith('//')) ? redirectTo : '/'
+        };
     } catch (error: unknown) {
         // Don't catch redirect errors
         if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
@@ -46,3 +81,4 @@ export async function registerAction(prevState: { error?: string } | undefined, 
         return { error: message };
     }
 }
+

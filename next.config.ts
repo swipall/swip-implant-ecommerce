@@ -22,7 +22,8 @@ const nextConfig: NextConfig = {
     },
     experimental: {
         rootParams: true
-    }
+    },
+    output: 'standalone'
 };
 
 export default nextConfig;
